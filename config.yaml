@@ -1,0 +1,18 @@
+apiVersion: beaver.cloudcrane.io/v1alpha0
+kind: Config
+spec:
+  env:
+  - name: VAULT_KV
+    value: cnpp.k8s.cloudcrane.io
+  charts:
+    postgres:
+      type: helm
+      name: postgresql
+      values:
+        config:
+          datasource:
+            password: "<path:{.VAULT_KV}/data/{.namespace}/postgres#password>"
+        fullnameOverride: "pg-exporter-{.namespace}"
+    odoo:
+      type: ytt
+      name: odoo
