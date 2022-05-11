@@ -1,7 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"os"
+	"orus.io/cloudcrane/beaver/cmd"
+
+)
 
 func main () {
-	fmt.Println("Hello beaverz")
+	if code := cmd.Run(); code != 0 {
+		os.Exit(code)
+	}
 }

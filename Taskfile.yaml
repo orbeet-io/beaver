@@ -1,0 +1,30 @@
+# this is a taskfile and is used with the dev tool named task
+# you can install this tool with the following command:
+# env GO111MODULE=on go get -u github.com/go-task/task/v3/cmd/task
+# if you want to use it in a CI build script chain you can just use
+# this
+# GO111MODULE=on go get -u github.com/go-task/task/v3/cmd/task
+
+---
+
+version: '3'
+
+vars:
+  VERSION: 1.0.0
+  OUTPUT: "build/beaver"
+
+tasks:
+  default:
+    cmds:
+    - task: build
+  build:
+    desc: build golang project
+    cmds:
+    - mkdir -p build
+    - |
+      go build \
+        -ldflags "-X orus.io/cloudcrane/beaver/lib.version={{ .VERSION }}" \
+        -o {{.OUTPUT}} \
+        main.go
+    generates:
+    - "{{.OUTPUT}}"
