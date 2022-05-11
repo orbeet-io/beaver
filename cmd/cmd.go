@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"time"
 	"fmt"
-	"github.com/rs/zerolog"
-	"orus.io/cloudcrane/beaver/lib"
 	"os"
+	"time"
 
 	"github.com/orus-io/go-flags"
+	"github.com/rs/zerolog"
+
+	beaver "orus.io/cloudcrane/beaver/lib"
 )
 
 var (
