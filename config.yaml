@@ -1,6 +1,8 @@
 apiVersion: beaver.cloudcrane.io/v1alpha0
 kind: Config
 spec:
+  # Global env var:
+  # - Can be accumulated/overwriten over beaver config files
   env:
   - name: VAULT_KV
     value: cnpp.k8s.cloudcrane.io
@@ -8,6 +10,7 @@ spec:
     postgres:
       type: helm
       name: postgresql
+      # Dynamic values can use env variables
       values:
         config:
           datasource:

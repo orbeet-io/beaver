@@ -7,10 +7,15 @@ Directory layout:
 ├── base
 │   ├── beaver.yml
 │   ├── odoo.yml
+│   ├── ytt/
 │   └── postgres.yml
 ├── prod
 │   ├── odoo.yml
 │   └── postgres.yml
+├── prod-build
+│   ├── <namespace>.<type>.<name>.yml
+│   ├── prod.statefulset.postgresql.yml
+│   └── prod.deployment.odoo.yml
 ├── test
 │   ├── beaver.yml
 │   └── odoo.yml
