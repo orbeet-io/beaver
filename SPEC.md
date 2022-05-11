@@ -5,20 +5,30 @@ Directory layout:
 ```
 .
 ├── base
-│   ├── beaver.yml
 │   ├── odoo.yml
-│   ├── ytt/
-│   └── postgres.yml
-├── prod
-│   ├── odoo.yml
-│   └── postgres.yml
-├── prod-build
-│   ├── <namespace>.<type>.<name>.yml
-│   ├── prod.statefulset.postgresql.yml
-│   └── prod.deployment.odoo.yml
-├── test
-│   ├── beaver.yml
-│   └── odoo.yml
+│   ├── postgres.yml
+│   └── ytt
+│       ├── patch.yml
+│       ├── resources.yml
+│       └── values.yml
+├── beaver.yml
+├── builds
+│   ├── prod
+│   │   ├── deployment.odoo.yml
+│   │   └── statefulset.postgresql.yml
+│   └── test
+│       ├── deployment.odoo.yml
+│       └── statefulset.postgresql.yml
+├── environments
+│   ├── prod
+│   │   ├── odoo.yml
+│   │   ├── postgres.yml
+│   │   └── ytt
+│   │       ├── patch.yml
+│   │       └── values.yml
+│   └── test
+│       ├── beaver.yml
+│       └── odoo.yml
 └── vendir.yml
 ```
 
@@ -34,7 +44,7 @@ Should build charts, exemple:
 ```sh
 helm template postgresql vendor/helm/postgresql \
     --namespace <namespace> \
-    -f /tmp/values-above.yaml \
+    -f /tmp/values-from-config.yaml \
     -f base/postgres.yaml \
     (if ./<namespace>/postgres.yaml then -f ./<namespace>/postgres.yaml fi) \
     > /tmp/resources.yaml
