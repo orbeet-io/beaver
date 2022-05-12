@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -39,10 +40,11 @@ type Config struct {
 	Kind       string `mapstructure:"kind"`
 	Spec       Spec   `mapstructure:"spec"`
 	Namespace  string
+	Logger     zerolog.Logger
 }
 
 // NewConfig returns a *Config
-func NewConfig(configDir string, namespace string) (*Config, error) {
+func NewConfig(logger zerolog.Logger, configDir string, namespace string) (*Config, error) {
 	// we ONLY search for files named beaver.yml
 	viper.SetConfigName("beaver")
 	viper.AddConfigPath(configDir)
