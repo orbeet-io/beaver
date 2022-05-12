@@ -1,5 +1,7 @@
 package cmd
 
+import "orus.io/cloudcrane/beaver/runner"
+
 type BuildCmd struct {
 	Args struct {
 		Namespace string `required:"yes" positional-arg-name:"namespace"`
@@ -16,8 +18,13 @@ func NewBuildCmd() *BuildCmd {
 
 // Execute ...
 func (cmd *BuildCmd) Execute([]string) error {
-	Logger.Info().Str("namespace", cmd.Args.Namespace).Msg("Welcome buddy")
-	return nil
+	Logger.Info().Str("namespace", cmd.Args.Namespace).Msg("starting beaver")
+	config, err := runner.NewConfig(".", cmd.Args.Namespace)
+	if err != nil {
+		Logger.Err(err).Msg("failed to prepare config")
+	}
+	r := runner.NewRunner(config)
+	return r.Build()
 }
 
 func init() {
