@@ -8,9 +8,9 @@ spec:
     value: cnpp.k8s.cloudcrane.io
   ytt:
   - key: vault.kv
-    value: {.VAULT_KV}
+    value: "{.VAULT_KV}"
   - key: namespace
-    value: {.namespace}
+    value: "{.namespace}"
   charts:
     postgres:
       type: helm
