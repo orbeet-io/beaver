@@ -5,23 +5,22 @@ spec:
   - name: VAULT_KV
     value: cnpp.k8s.cloudcrane.io
   charts:
-    postgres:
-      type: helm
-      name: postgresql
-      values:
-        config:
-          datasource:
-            password: "<path:{{.VAULT_KV}}/data/{{.namespace}}/postgres#password>"
-        fullnameOverride: "pg-exporter-{{.namespace}}"
-    odoo:
-      type: ytt
-      name: odoo
-      values: &DEFAULT_VALUES
-      - key: vault.kv
-        value: "{{.VAULT_KV}}"
-      - key: namespace
-        value: "{{.namespace}}"
-    toto:
-      type: ytt
-      name: odoo
-      values: *DEFAULT_VALUES
+    helm:
+      postgres:
+        name: postgresql
+        values:
+          config:
+            datasource:
+              password: "<path:{{.VAULT_KV}}/data/{{.namespace}}/postgres#password>"
+          fullnameOverride: "pg-exporter-{{.namespace}}"
+    ytt:
+      odoo:
+        name: odoo
+        values: &DEFAULT_VALUES
+        - key: vault.kv
+          value: "{{.VAULT_KV}}"
+        - key: namespace
+          value: "{{.namespace}}"
+      toto:
+        name: toto
+        values: *DEFAULT_VALUES
