@@ -34,4 +34,6 @@ fullnameoverride: pg-exporter-ns1
 	// yaml support should let toto entry use DEFAULT_VALUES defined in odoo
 	assert.Equal(t, "cnpp.k8s.cloudcrane.io", config.Spec.Charts.Ytt["toto"].Values[0].Value)
 	assert.Equal(t, testNS, config.Spec.Charts.Ytt["toto"].Values[1].Value)
-}
+
+	// verify variables overwrite
+	assert.Equal(t, "admin", config.Spec.Charts.Ytt["odoo"].Values[2].Value)

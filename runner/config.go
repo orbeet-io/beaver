@@ -2,10 +2,11 @@ package runner
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"os"
 	"text/template"
 
-	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -50,30 +51,28 @@ type Config struct {
 	APIVersion string `mapstructure:"apiVersion"`
 	Kind       string `mapstructure:"kind"`
 	Spec       Spec   `mapstructure:"spec"`
-	Namespace  string
-	Logger     zerolog.Logger
 }
 
 // NewConfig returns a *Config
-func NewConfig(logger zerolog.Logger, configDir string, namespace string) (*Config, error) {
-	// we ONLY search for files named beaver.yml
-	viper.SetConfigName("beaver")
-	viper.AddConfigPath(configDir)
-	if err := viper.ReadInConfig(); err != nil {
+func NewConfig(configDir string) (*Config, error) {
+	v := viper.New()
+	v.SetConfigName("beaver")
+	v.AddConfigPath(configDir)
+	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}
 	var config Config
 	cfg := &config
-	cfg.Namespace = namespace
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, err
-	}
-
-	if err := cfg.hydrate(); err != nil {
+	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
 	return cfg, nil
+}
+
+func checkExists(path string) bool {
+	_, err := os.Stat(path)
+	return !errors.Is(err, os.ErrNotExist)
 }
 
 // hydrate expands templated variables in our config with concrete values

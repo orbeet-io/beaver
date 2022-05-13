@@ -4,12 +4,15 @@ spec:
   variables:
   - name: VAULT_KV
     value: cnpp.k8s.cloudcrane.io
+  - name: ROLE
+    value: default
   charts:
     helm:
       postgres:
         name: postgresql
         values:
           config:
+            role: "{{.ROLE}}"
             datasource:
               password: "<path:{{.VAULT_KV}}/data/{{.namespace}}/postgres#password>"
           fullnameOverride: "pg-exporter-{{.namespace}}"
@@ -21,6 +24,8 @@ spec:
           value: "{{.VAULT_KV}}"
         - key: namespace
           value: "{{.namespace}}"
+        - key: role
+          value: "{{.ROLE}}"
       toto:
         name: toto
         values: *DEFAULT_VALUES
