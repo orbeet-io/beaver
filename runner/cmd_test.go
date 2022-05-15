@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"orus.io/cloudcrane/beaver/testutils"
 )
 
 func TestRunCMD(t *testing.T) {
@@ -18,4 +19,17 @@ func TestRunCMD(t *testing.T) {
 	for _, errMsg := range stderr {
 		fmt.Println(errMsg)
 	}
+}
+
+func TestCmdConfig(t *testing.T) {
+	tl := testutils.NewTestLogger(t)
+	testNS := "ns1"
+	c, err := NewCmdConfig(tl.Logger(), "fixtures/", testNS)
+	require.NoError(t, err)
+
+	// TODO: make sure this is the expected values including the leading | ...
+	assert.Equal(t, []string{
+		"|\n  config:\n    datasource:\n      password: <path:cnpp.k8s.cloudcrane.io/data/ns1/postgres#password>\n    role: 'admin'\n  fullnameoverride: pg-exporter-ns1\n"},
+		c.Spec.Charts.Helm["postgres"].Values,
+	)
 }

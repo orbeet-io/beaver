@@ -27,7 +27,9 @@ func RunCMD(name string, args ...string) (err error, stdout, stderr []string) {
 }
 
 func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*CmdConfig, error) {
-	var cmdConfig CmdConfig
+	cmdConfig := &CmdConfig{}
+	cmdConfig.Spec.Charts.Helm = make(map[string]CmdHelmChart)
+	cmdConfig.Spec.Charts.Ytt = make(map[string]CmdYttChart)
 	cmdConfig.Namespace = namespace
 	cmdConfig.Logger = logger
 
@@ -42,10 +44,26 @@ func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*C
 		return nil, err
 	}
 
+	// first "import" all variables from baseCfg
+	cmdConfig.Spec.Variables = baseCfg.Spec.Variables
+	// then merge in all variables from the nsCfg
+	cmdConfig.MergeVariables(nsCfg)
+
 	// TODO:
-	// - merge baseCfg & nsCfg according to magic
+	// - merge baseCfg & nsCfg charts
+	if err := cmdConfig.importCharts(baseCfg); err != nil {
+		return nil, err
+	}
+	if err := cmdConfig.importCharts(nsCfg); err != nil {
+		return nil, err
+	}
+
 	// - hydrate
-	return &cmdConfig, nil
+	if err := cmdConfig.hydrate(); err != nil {
+		return nil, err
+	}
+
+	return cmdConfig, nil
 }
 
 type CmdConfig struct {
@@ -135,5 +153,75 @@ func (c *CmdConfig) hydrateHelmCharts() error {
 		chart.Values = newVals
 		c.Spec.Charts.Helm[name] = chart
 	}
+	return nil
+}
+
+// MergeVariables takes a config (from a file, not a cmd one) and import its
+// variables into the current cmdconfig by replacing old ones
+// and adding the new ones
+func (c *CmdConfig) MergeVariables(other *Config) {
+	for _, variable := range other.Spec.Variables {
+		c.overlayVariable(variable)
+	}
+}
+
+// overlayVariable takes a variable in and either replaces an existing variable
+// of the same name or create a new variable in the config if no matching name
+// is found
+func (c *CmdConfig) overlayVariable(v Variable) {
+	// find same variable by name and replace is value
+	// if not found then create the variable
+	for index, originalVariable := range c.Spec.Variables {
+		if originalVariable.Name == v.Name {
+			c.Spec.Variables[index].Value = v.Value
+			return
+		}
+	}
+	c.Spec.Variables = append(c.Spec.Variables, v)
+}
+
+func (c *CmdConfig) importCharts(other *Config) error {
+	if err := c.importHelmCharts(other.Spec.Charts.Helm); err != nil {
+		return nil
+	}
+	if err := c.importYttCharts(other.Spec.Charts.Ytt); err != nil {
+		return nil
+	}
+	return nil
+}
+
+func (c *CmdConfig) importHelmCharts(helmCharts map[string]HelmChart) error {
+	for id, chart := range helmCharts {
+		convertedChart, err := cmdHelmChartFromHelmChart(chart)
+		if err != nil {
+			return err
+		}
+		_, ok := c.Spec.Charts.Helm[id]
+		if !ok {
+			// we have no chart by that name yet...
+			// create one
+			c.Spec.Charts.Helm[id] = *convertedChart
+			continue
+		}
+		// else just append values to existing one
+		convertedChart.Values = append(c.Spec.Charts.Helm[id].Values, convertedChart.Values...)
+		c.Spec.Charts.Helm[id] = *convertedChart
+	}
+	return nil
+}
+
+func cmdHelmChartFromHelmChart(c HelmChart) (*CmdHelmChart, error) {
+	strValues, err := yaml.Marshal(c.Values)
+	if err != nil {
+		return nil, err
+	}
+	return &CmdHelmChart{
+		Type:   c.Type,
+		Name:   c.Name,
+		Values: []string{string(strValues)},
+	}, nil
+}
+
+func (c *CmdConfig) importYttCharts(yttCharts map[string]YttChart) error {
 	return nil
 }
