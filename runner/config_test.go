@@ -37,3 +37,4 @@ fullnameoverride: pg-exporter-ns1
 
 	// verify variables overwrite
 	assert.Equal(t, "admin", config.Spec.Charts.Ytt["odoo"].Values[2].Value)
+}

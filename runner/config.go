@@ -1,14 +1,7 @@
 package runner
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"os"
-	"text/template"
-
 	"github.com/spf13/viper"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // Variable ...
@@ -70,67 +63,25 @@ func NewConfig(configDir string) (*Config, error) {
 	return cfg, nil
 }
 
-func checkExists(path string) bool {
-	_, err := os.Stat(path)
-	return !errors.Is(err, os.ErrNotExist)
+// MergeVariables takes another config and will import those variables into
+// the current config by replacing old ones and adding the new ones
+func (c *Config) MergeVariables(other *Config) {
+	for _, variable := range other.Spec.Variables {
+		c.overlayVariable(variable)
+	}
 }
 
-// hydrate expands templated variables in our config with concrete values
-func (c *Config) hydrate() error {
-	if err := c.hydrateHelmCharts(); err != nil {
-		return err
-	}
-	if err := c.hydrateYttCharts(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Config) prepareVariables(v []Variable) map[string]string {
-	variables := make(map[string]string)
-	for _, variable := range v {
-		variables[variable.Name] = variable.Value
-	}
-	variables["namespace"] = c.Namespace
-	return variables
-}
-
-func (c *Config) hydrateYttCharts() error {
-	for entryFileName, entry := range c.Spec.Charts.Ytt {
-		for valIndex, val := range entry.Values {
-			valueTmpl, err := template.New("ytt entry value").Parse(val.Value)
-			if err != nil {
-				return fmt.Errorf("failed to parse ytt entry value as template: %q, %w", val.Value, err)
-			}
-			buf := new(bytes.Buffer)
-			if err := valueTmpl.Execute(buf, c.prepareVariables(c.Spec.Variables)); err != nil {
-				return fmt.Errorf("failed to hydrate ytt entry: %q, %w", val.Value, err)
-			}
-			// replace original content with hydrated version
-			c.Spec.Charts.Ytt[entryFileName].Values[valIndex].Value = buf.String()
+// overlayVariable takes a variable in and either replaces an existing variable
+// of the same name or create a new variable in the config if no matching name
+// is found
+func (c *Config) overlayVariable(v Variable) {
+	// find same variable by name and replace is value
+	// if not found then create the variable
+	for index, originalVariable := range c.Spec.Variables {
+		if originalVariable.Name == v.Name {
+			c.Spec.Variables[index].Value = v.Value
+			return
 		}
 	}
-	return nil
-}
-
-func (c *Config) hydrateHelmCharts() error {
-	for name, chart := range c.Spec.Charts.Helm {
-		rawChartValues, err := yaml.Marshal(chart.Values)
-		if err != nil {
-			return fmt.Errorf("failed to get chart values as string: %w", err)
-		}
-		valueTmpl, err := template.New("chart").Parse(string(rawChartValues))
-		if err != nil {
-			return fmt.Errorf("failed to parse chart values as template: %q, %w", chart.Values, err)
-		}
-		buf := new(bytes.Buffer)
-		if err := valueTmpl.Execute(buf, c.prepareVariables(c.Spec.Variables)); err != nil {
-			return fmt.Errorf("failed to hydrate chart values entry: %q, %w", chart.Values, err)
-		}
-		// replace original content with hydrated version
-		hydratedChart := chart
-		hydratedChart.Values = buf.String()
-		c.Spec.Charts.Helm[name] = hydratedChart
-	}
-	return nil
+	c.Spec.Variables = append(c.Spec.Variables, v)
 }
