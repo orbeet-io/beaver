@@ -10,27 +10,13 @@ type Variable struct {
 	Value string `mapstructure:"value"`
 }
 
-// Value ...
-type Value struct {
-	Key   string `mapstructure:"key"`
-	Value string `mapstructure:"value"`
-}
-
-type HelmChart struct {
-	Type   string                 `mapstructure:"type"`
-	Name   string                 `mapstructure:"name"`
-	Values map[string]interface{} `mapstructure:"values"`
-}
-
-type YttChart struct {
-	Type   string  `mapstructure:"type"`
-	Name   string  `mapstructure:"name"`
-	Values []Value `mapstructure:"values"`
+type Chart struct {
+	Path string `mapstructure:"path"`
 }
 
 type Charts struct {
-	Helm map[string]HelmChart `mapstructure:"helm"`
-	Ytt  map[string]YttChart  `mapstructure:"ytt"`
+	Helm map[string]Chart `mapstructure:"helm"`
+	Ytt  map[string]Chart `mapstructure:"ytt"`
 }
 
 // Spec ...

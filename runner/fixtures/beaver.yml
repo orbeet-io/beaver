@@ -3,29 +3,11 @@ kind: Config
 spec:
   variables:
   - name: VAULT_KV
-    value: cnpp.k8s.cloudcrane.io
-  - name: ROLE
-    value: default
+    value: orus.io
   charts:
     helm:
       postgres:
-        name: postgresql
-        values:
-          config:
-            role: "{{.ROLE}}"
-            datasource:
-              password: "<path:{{.VAULT_KV}}/data/{{.namespace}}/postgres#password>"
-          fullnameOverride: "pg-exporter-{{.namespace}}"
+        path: vendor/helm/postgresql
     ytt:
       odoo:
-        name: odoo
-        values: &DEFAULT_VALUES
-        - key: vault.kv
-          value: "{{.VAULT_KV}}"
-        - key: namespace
-          value: "{{.namespace}}"
-        - key: role
-          value: "{{.ROLE}}"
-      toto:
-        name: toto
-        values: *DEFAULT_VALUES
+        path: vendor/ytt/odoo

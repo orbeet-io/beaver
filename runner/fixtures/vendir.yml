@@ -1,0 +1,19 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor/helm
+  contents:
+  - path: postgresql
+    helmChart:
+      name: postgresql
+      version: "10.5.0"
+      repository:
+        url: https://charts.bitnami.com/bitnami
+- path: vendor/ytt
+  contents:
+  - path: odoo
+    hg:
+      url: https://orus.io/cloudcrane/charts/odoo
+      ref: default
+      secretRef:
+        name: orus-heptapod-auth

@@ -27,7 +27,6 @@ func TestCmdConfig(t *testing.T) {
 	c, err := NewCmdConfig(tl.Logger(), "fixtures/", testNS)
 	require.NoError(t, err)
 
-	// TODO: make sure this is the expected values including the leading | ...
 	assert.Equal(t, []string{
 		`config:
   datasource:
@@ -35,6 +34,6 @@ func TestCmdConfig(t *testing.T) {
   role: 'admin'
 fullnameoverride: pg-exporter-ns1
 `},
-		c.Spec.Charts.Helm["postgres"].Values,
+		c.Spec.Charts.Helm["postgres"].Files[0],
 	)
 }

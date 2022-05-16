@@ -2,5 +2,5 @@ apiVersion: beaver.cloudcrane.io/v1alpha0
 kind: Config
 spec:
   variables:
-  - name: ROLE
-    value: admin
+  - name: VAULT_KV
+    value: k8s.orus.io
