@@ -29,7 +29,12 @@ func TestCmdConfig(t *testing.T) {
 
 	// TODO: make sure this is the expected values including the leading | ...
 	assert.Equal(t, []string{
-		"|\n  config:\n    datasource:\n      password: <path:cnpp.k8s.cloudcrane.io/data/ns1/postgres#password>\n    role: 'admin'\n  fullnameoverride: pg-exporter-ns1\n"},
+		`config:
+  datasource:
+    password: <path:cnpp.k8s.cloudcrane.io/data/ns1/postgres#password>
+  role: 'admin'
+fullnameoverride: pg-exporter-ns1
+`},
 		c.Spec.Charts.Helm["postgres"].Values,
 	)
 }

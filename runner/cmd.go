@@ -136,11 +136,7 @@ func (c *CmdConfig) hydrateHelmCharts() error {
 	for name, chart := range c.Spec.Charts.Helm {
 		var newVals []string
 		for _, value := range chart.Values {
-			rawChartValue, err := yaml.Marshal(value)
-			if err != nil {
-				return fmt.Errorf("failed to get chart values as string: %w", err)
-			}
-			valueTmpl, err := template.New("chart").Parse(string(rawChartValue))
+			valueTmpl, err := template.New("chart").Parse(value)
 			if err != nil {
 				return fmt.Errorf("failed to parse chart values as template: %q, %w", chart.Values, err)
 			}

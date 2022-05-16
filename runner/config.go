@@ -17,9 +17,9 @@ type Value struct {
 }
 
 type HelmChart struct {
-	Type   string      `mapstructure:"type"`
-	Name   string      `mapstructure:"name"`
-	Values interface{} `mapstructure:"values"`
+	Type   string                 `mapstructure:"type"`
+	Name   string                 `mapstructure:"name"`
+	Values map[string]interface{} `mapstructure:"values"`
 }
 
 type YttChart struct {
