@@ -2,6 +2,7 @@ package runner
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,9 @@ func TestRunCMD(t *testing.T) {
 func TestCmdConfig(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	testNS := "ns1"
-	c, err := NewCmdConfig(tl.Logger(), "fixtures/", testNS)
+	absConfigDir, err := filepath.Abs("fixtures/")
+	require.NoError(t, err)
+	c, err := NewCmdConfig(tl.Logger(), absConfigDir, testNS)
 	require.NoError(t, err)
 
 	pgHelmChart, ok := c.Spec.Charts.Helm["postgres"]
@@ -43,4 +46,8 @@ func TestCmdConfig(t *testing.T) {
 				c.Spec.Charts.Helm["postgres"].Files[0],
 			)
 	*/
+}
+
+func TestFindFiles(t *testing.T) {
+
 }

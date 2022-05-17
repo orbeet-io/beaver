@@ -27,13 +27,13 @@ func RunCMD(name string, args ...string) (err error, stdout, stderr []string) {
 
 func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*CmdConfig, error) {
 	cmdConfig := &CmdConfig{}
+	cmdConfig.RootDir = configDir
 	cmdConfig.Spec.Charts.Helm = make(map[string]CmdChart)
 	cmdConfig.Spec.Charts.Ytt = make(map[string]CmdChart)
 	cmdConfig.Namespace = namespace
 	cmdConfig.Logger = logger
 
 	baseCfg, err := NewConfig(configDir)
-	fmt.Printf(">>> %+v\n", baseCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -49,13 +49,18 @@ func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*C
 	// then merge in all variables from the nsCfg
 	cmdConfig.MergeVariables(nsCfg)
 
-	// TODO: merge baseCfg & nsCfg charts into cmdConfig
+	for name, c := range baseCfg.Spec.Charts.Helm {
+		cmdConfig.Spec.Charts.Helm[name] = NewCmdChartFromChart(c)
+	}
+	for name, c := range nsCfg.Spec.Charts.Helm {
+		cmdConfig.Spec.Charts.Helm[name] = NewCmdChartFromChart(c)
+	}
 
 	cmdConfig.populate()
 
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}
 
 	// - hydrate
@@ -68,6 +73,7 @@ func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*C
 
 type CmdConfig struct {
 	Spec      CmdSpec
+	RootDir   string
 	Namespace string
 	Logger    zerolog.Logger
 }
@@ -85,6 +91,13 @@ type CmdCharts struct {
 type CmdChart struct {
 	Name  string
 	Files []string
+}
+
+func NewCmdChartFromChart(c Chart) CmdChart {
+	return CmdChart{
+		Name:  c.Path,
+		Files: nil,
+	}
 }
 
 // hydrate expands templated variables in our config with concrete values
@@ -105,25 +118,23 @@ func (c *CmdConfig) prepareVariables(v []Variable) map[string]string {
 }
 
 func (c *CmdConfig) populate() {
-	c.Spec.Charts.Helm = findFiles(c.Namespace, c.Spec.Charts.Helm)
-	c.Spec.Charts.Ytt = findFiles(c.Namespace, c.Spec.Charts.Ytt)
+	c.Spec.Charts.Helm = findFiles(c.RootDir, c.Namespace, c.Spec.Charts.Helm)
+	c.Spec.Charts.Ytt = findFiles(c.RootDir, c.Namespace, c.Spec.Charts.Ytt)
 }
 
-func findFiles(namespace string, charts map[string]CmdChart) map[string]CmdChart {
-	var fpath string
-	var files []string
+func findFiles(rootdir, namespace string, charts map[string]CmdChart) map[string]CmdChart {
 	for name, chart := range charts {
+		var files []string
 		for _, folder := range []string{"base", filepath.Join("environments", namespace)} {
 			for _, ext := range []string{"yaml", "yml"} {
-				fpath = filepath.Join(folder, fmt.Sprintf("%s.%s", name, ext))
+				fpath := filepath.Join(rootdir, folder, fmt.Sprintf("%s.%s", name, ext))
 				if _, err := os.Stat(fpath); err == nil {
 					files = append(files, fpath)
-					chart.Files = append(chart.Files, fpath)
-					charts[name] = chart
 				}
-
 			}
 		}
+		chart.Files = append(chart.Files, files...)
+		charts[name] = chart
 	}
 	return charts
 }
@@ -131,14 +142,17 @@ func findFiles(namespace string, charts map[string]CmdChart) map[string]CmdChart
 func (c *CmdChart) hydrateFiles(dirName string, variables map[string]string) ([]string, error) {
 	var hydratedFiles []string
 	for _, file := range c.Files {
-		if tmpl, err := template.New(file).ParseFiles(file); err != nil {
+		if tmpl, err := template.New(filepath.Base(file)).ParseFiles(file); err != nil {
 			return nil, err
 		} else {
-			if tmpFile, err := ioutil.TempFile(dirName, fmt.Sprintf("%s-", file)); err != nil {
-				return nil, err
+			if tmpFile, err := ioutil.TempFile(dirName, fmt.Sprintf("%s-", filepath.Base(file))); err != nil {
+				return nil, fmt.Errorf("hydrateFiles failed to create tempfile: %w", err)
 			} else {
+				defer func() {
+					_ = tmpFile.Close()
+				}()
 				if err := tmpl.Execute(tmpFile, variables); err != nil {
-					return nil, err
+					return nil, fmt.Errorf("hydrateFiles failed to execute template: %w", err)
 				}
 				hydratedFiles = append(hydratedFiles, tmpFile.Name())
 			}
@@ -158,7 +172,6 @@ func (c *CmdConfig) hydrateFiles(dirName string) error {
 			c.Spec.Charts.Helm[key] = helmChart
 		}
 	}
-	// FIXME: use generic to avoid repetition
 	for key, yttChart := range c.Spec.Charts.Ytt {
 		if files, err := yttChart.hydrateFiles(dirName, variables); err != nil {
 			return err
