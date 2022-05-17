@@ -2,6 +2,7 @@ package runner
 
 import (
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -30,24 +31,47 @@ func TestCmdConfig(t *testing.T) {
 	c, err := NewCmdConfig(tl.Logger(), absConfigDir, testNS)
 	require.NoError(t, err)
 
-	pgHelmChart, ok := c.Spec.Charts.Helm["postgres"]
+	pgHelmChart, ok := c.Spec.Charts["postgres"]
 	require.True(t, ok, "we should have a postgres helm chart in our cmdConfig")
 
-	require.NotEqual(t, 0, len(pgHelmChart.Files))
+	require.Equal(t, 2, len(pgHelmChart.ValuesFileNames))
+	file1Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[0])
+	require.NoError(t, err)
 
-	/*
-			assert.Equal(t, []string{
-				`config:
-		  datasource:
-		    password: <path:cnpp.k8s.cloudcrane.io/data/ns1/postgres#password>
-		  role: 'admin'
-		fullnameoverride: pg-exporter-ns1
-		`},
-				c.Spec.Charts.Helm["postgres"].Files[0],
-			)
-	*/
+	assert.Equal(t, `persistence:
+  storageClass: huawei-iscsi
+
+initdbScripts:
+  create.sql: |
+    CREATE EXTENSION IF NOT EXISTS unaccent;
+
+postgresqlUsername: "<path:k8s.orus.io/data/ns1/postgres#username>"
+postgresqlDatabase: "<path:k8s.orus.io/data/ns1/postgres#database>"
+`, string(file1Content))
+
+	file2Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[1])
+	require.NoError(t, err)
+	assert.Equal(t, `image:
+  tag: 14
+`, string(file2Content))
+
+	odooYttChart, ok := c.Spec.Charts["odoo"]
+	require.True(t, ok, "we should have an odoo ytt chart in our cmdConfig")
+	assert.Equal(t, 2, len(odooYttChart.ValuesFileNames))
 }
 
 func TestFindFiles(t *testing.T) {
+	rootdir := "fixtures/"
+	namespace := "ns1"
+
+	charts := map[string]CmdChart{
+		"postgres": CmdChart{
+			Path:            "postgres",
+			ValuesFileNames: nil,
+		},
+	}
+
+	newCharts := findFiles(rootdir, namespace, charts)
+	require.Equal(t, 2, len(newCharts["postgres"].ValuesFileNames))
 
 }

@@ -1,0 +1,4 @@
+#@data/values
+---
+odoo:
+  tag: 15.0

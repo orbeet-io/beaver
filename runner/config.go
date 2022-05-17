@@ -11,18 +11,14 @@ type Variable struct {
 }
 
 type Chart struct {
+	Type string `mapstructure:"type"`
 	Path string `mapstructure:"path"`
-}
-
-type Charts struct {
-	Helm map[string]Chart `mapstructure:"helm"`
-	Ytt  map[string]Chart `mapstructure:"ytt"`
 }
 
 // Spec ...
 type Spec struct {
-	Variables []Variable `mapstructure:"variables"`
-	Charts    Charts     `mapstructure:"charts"`
+	Variables []Variable       `mapstructure:"variables"`
+	Charts    map[string]Chart `mapstructure:"charts"`
 }
 
 // Config is the configuration we get after parsing our beaver.yml file

@@ -28,8 +28,7 @@ func RunCMD(name string, args ...string) (err error, stdout, stderr []string) {
 func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*CmdConfig, error) {
 	cmdConfig := &CmdConfig{}
 	cmdConfig.RootDir = configDir
-	cmdConfig.Spec.Charts.Helm = make(map[string]CmdChart)
-	cmdConfig.Spec.Charts.Ytt = make(map[string]CmdChart)
+	cmdConfig.Spec.Charts = make(map[string]CmdChart)
 	cmdConfig.Namespace = namespace
 	cmdConfig.Logger = logger
 
@@ -49,11 +48,8 @@ func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*C
 	// then merge in all variables from the nsCfg
 	cmdConfig.MergeVariables(nsCfg)
 
-	for name, c := range baseCfg.Spec.Charts.Helm {
-		cmdConfig.Spec.Charts.Helm[name] = NewCmdChartFromChart(c)
-	}
-	for name, c := range nsCfg.Spec.Charts.Helm {
-		cmdConfig.Spec.Charts.Helm[name] = NewCmdChartFromChart(c)
+	for k, c := range baseCfg.Spec.Charts {
+		cmdConfig.Spec.Charts[k] = NewCmdChartFromChart(c)
 	}
 
 	cmdConfig.populate()
@@ -83,28 +79,28 @@ type CmdSpec struct {
 	Charts    CmdCharts
 }
 
-type CmdCharts struct {
-	Helm map[string]CmdChart
-	Ytt  map[string]CmdChart
-}
+type CmdCharts map[string]CmdChart
 
 type CmdChart struct {
-	Name  string
-	Files []string
+	Type            string
+	Path            string
+	ValuesFileNames []string
 }
 
 func NewCmdChartFromChart(c Chart) CmdChart {
 	return CmdChart{
-		Name:  c.Path,
-		Files: nil,
+		Path:            c.Path,
+		ValuesFileNames: nil,
 	}
 }
 
 // hydrate expands templated variables in our config with concrete values
 func (c *CmdConfig) hydrate(dirName string) error {
+	c.Logger.Debug().Str("charts", fmt.Sprintf("%+v\n", c.Spec.Charts)).Msg("charts before hydrate")
 	if err := c.hydrateFiles(dirName); err != nil {
 		return err
 	}
+	c.Logger.Debug().Str("charts", fmt.Sprintf("%+v\n", c.Spec.Charts)).Msg("charts after hydrate")
 	return nil
 }
 
@@ -118,8 +114,7 @@ func (c *CmdConfig) prepareVariables(v []Variable) map[string]string {
 }
 
 func (c *CmdConfig) populate() {
-	c.Spec.Charts.Helm = findFiles(c.RootDir, c.Namespace, c.Spec.Charts.Helm)
-	c.Spec.Charts.Ytt = findFiles(c.RootDir, c.Namespace, c.Spec.Charts.Ytt)
+	c.Spec.Charts = findFiles(c.RootDir, c.Namespace, c.Spec.Charts)
 }
 
 func findFiles(rootdir, namespace string, charts map[string]CmdChart) map[string]CmdChart {
@@ -133,7 +128,7 @@ func findFiles(rootdir, namespace string, charts map[string]CmdChart) map[string
 				}
 			}
 		}
-		chart.Files = append(chart.Files, files...)
+		chart.ValuesFileNames = append(chart.ValuesFileNames, files...)
 		charts[name] = chart
 	}
 	return charts
@@ -141,7 +136,7 @@ func findFiles(rootdir, namespace string, charts map[string]CmdChart) map[string
 
 func (c *CmdChart) hydrateFiles(dirName string, variables map[string]string) ([]string, error) {
 	var hydratedFiles []string
-	for _, file := range c.Files {
+	for _, file := range c.ValuesFileNames {
 		if tmpl, err := template.New(filepath.Base(file)).ParseFiles(file); err != nil {
 			return nil, err
 		} else {
@@ -164,20 +159,12 @@ func (c *CmdChart) hydrateFiles(dirName string, variables map[string]string) ([]
 func (c *CmdConfig) hydrateFiles(dirName string) error {
 	variables := c.prepareVariables(c.Spec.Variables)
 
-	for key, helmChart := range c.Spec.Charts.Helm {
-		if files, err := helmChart.hydrateFiles(dirName, variables); err != nil {
+	for key, chart := range c.Spec.Charts {
+		if files, err := chart.hydrateFiles(dirName, variables); err != nil {
 			return err
 		} else {
-			helmChart.Files = files
-			c.Spec.Charts.Helm[key] = helmChart
-		}
-	}
-	for key, yttChart := range c.Spec.Charts.Ytt {
-		if files, err := yttChart.hydrateFiles(dirName, variables); err != nil {
-			return err
-		} else {
-			yttChart.Files = files
-			c.Spec.Charts.Ytt[key] = yttChart
+			chart.ValuesFileNames = files
+			c.Spec.Charts[key] = chart
 		}
 	}
 	return nil

@@ -4,10 +4,12 @@ spec:
   variables:
   - name: VAULT_KV
     value: orus.io
+  - name: ROLE
+    value: odoo-batch
   charts:
-    helm:
-      postgres:
-        path: vendor/helm/postgresql
-    ytt:
-      odoo:
-        path: vendor/ytt/odoo
+    postgres:
+      type: helm
+      path: vendor/helm/postgresql
+    odoo:
+      type: ytt
+      path: vendor/ytt/odoo
