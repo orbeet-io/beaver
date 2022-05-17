@@ -13,7 +13,8 @@ import (
 
 func RunCMD(name string, args ...string) (err error, stdout, stderr []string) {
 	// helm template -f base.yaml -f base.values.yaml -f ns.yaml -f ns.values.yaml
-	// ytt -f /chart-folder -f base.yaml -f ns.yaml -v ... -v ...
+	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
+	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 	c := cmd.NewCmd(name, args...)
 	statusChan := c.Start()
 	status := <-statusChan
@@ -134,13 +135,22 @@ func findFiles(rootdir, namespace string, charts map[string]CmdChart) map[string
 	return charts
 }
 
-func (c *CmdChart) hydrateFiles(dirName string, variables map[string]string) ([]string, error) {
-	var hydratedFiles []string
-	for _, file := range c.ValuesFileNames {
-		if tmpl, err := template.New(filepath.Base(file)).ParseFiles(file); err != nil {
+func hydrateFiles(dirName string, variables map[string]string, paths []string) ([]string, error) {
+	var result []string
+	for _, path := range paths {
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			return nil, err
+		}
+		if fileInfo.IsDir() {
+			result = append(result, path)
+			continue
+		}
+
+		if tmpl, err := template.New(filepath.Base(path)).ParseFiles(path); err != nil {
 			return nil, err
 		} else {
-			if tmpFile, err := ioutil.TempFile(dirName, fmt.Sprintf("%s-", filepath.Base(file))); err != nil {
+			if tmpFile, err := ioutil.TempFile(dirName, fmt.Sprintf("%s-", filepath.Base(path))); err != nil {
 				return nil, fmt.Errorf("hydrateFiles failed to create tempfile: %w", err)
 			} else {
 				defer func() {
@@ -149,21 +159,21 @@ func (c *CmdChart) hydrateFiles(dirName string, variables map[string]string) ([]
 				if err := tmpl.Execute(tmpFile, variables); err != nil {
 					return nil, fmt.Errorf("hydrateFiles failed to execute template: %w", err)
 				}
-				hydratedFiles = append(hydratedFiles, tmpFile.Name())
+				result = append(result, tmpFile.Name())
 			}
 		}
 	}
-	return hydratedFiles, nil
+	return result, nil
 }
 
 func (c *CmdConfig) hydrateFiles(dirName string) error {
 	variables := c.prepareVariables(c.Spec.Variables)
 
 	for key, chart := range c.Spec.Charts {
-		if files, err := chart.hydrateFiles(dirName, variables); err != nil {
+		if paths, err := hydrateFiles(dirName, variables, chart.ValuesFileNames); err != nil {
 			return err
 		} else {
-			chart.ValuesFileNames = files
+			chart.ValuesFileNames = paths
 			c.Spec.Charts[key] = chart
 		}
 	}
