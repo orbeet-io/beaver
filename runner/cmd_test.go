@@ -28,17 +28,18 @@ func TestCmdConfig(t *testing.T) {
 	testNS := "ns1"
 	absConfigDir, err := filepath.Abs("fixtures/")
 	require.NoError(t, err)
-	c, err := NewCmdConfig(tl.Logger(), absConfigDir, testNS)
-	require.NoError(t, err)
+	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS)
+	require.NoError(t, c.Initialize())
 
-	pgHelmChart, ok := c.Spec.Charts["postgres"]
-	require.True(t, ok, "we should have a postgres helm chart in our cmdConfig")
+	t.Run("helmCharts", func(t *testing.T) {
+		pgHelmChart, ok := c.Spec.Charts["postgres"]
+		require.True(t, ok, "we should have a postgres helm chart in our cmdConfig")
 
-	require.Equal(t, 2, len(pgHelmChart.ValuesFileNames))
-	file1Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[0])
-	require.NoError(t, err)
+		require.Equal(t, 2, len(pgHelmChart.ValuesFileNames))
+		file1Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[0])
+		require.NoError(t, err)
 
-	assert.Equal(t, `persistence:
+		assert.Equal(t, `persistence:
   storageClass: huawei-iscsi
 
 initdbScripts:
@@ -49,15 +50,26 @@ postgresqlUsername: "<path:k8s.orus.io/data/ns1/postgres#username>"
 postgresqlDatabase: "<path:k8s.orus.io/data/ns1/postgres#database>"
 `, string(file1Content))
 
-	file2Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[1])
-	require.NoError(t, err)
-	assert.Equal(t, `image:
+		file2Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[1])
+		require.NoError(t, err)
+		assert.Equal(t, `image:
   tag: 14
 `, string(file2Content))
+	})
 
-	odooYttChart, ok := c.Spec.Charts["odoo"]
-	require.True(t, ok, "we should have an odoo ytt chart in our cmdConfig")
-	assert.Equal(t, 2, len(odooYttChart.ValuesFileNames))
+	t.Run("yttCharts", func(t *testing.T) {
+		odooYttChart, ok := c.Spec.Charts["odoo"]
+		require.True(t, ok, "we should have an odoo ytt chart in our cmdConfig")
+		assert.Equal(t, 2, len(odooYttChart.ValuesFileNames))
+	})
+
+	t.Run("yttPatches", func(t *testing.T) {
+		yttPatches := c.Spec.Ytt
+		l := tl.Logger()
+		logger := &l
+		logger.Debug().Str("patches", fmt.Sprintf("%+v", yttPatches)).Msg("found patches")
+		require.Equal(t, 4, len(yttPatches))
+	})
 }
 
 func TestFindFiles(t *testing.T) {

@@ -1,0 +1,17 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+
+#@overlay/match by=overlay.subset({"kind":"ConfigMap","metadata":{"name":"argocd-cm"}})
+#@overlay/match-child-defaults missing_ok=True
+---
+data:
+  beaverDemo: #@ data.values.hello
+  configManagementPlugins: |
+    - name: argocd-vault-plugin
+      generate:
+        command:
+        - /bin/bash
+        - -ce
+        args:
+        - |
+          cat * | argocd-vault-plugin generate -

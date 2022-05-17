@@ -26,46 +26,49 @@ func RunCMD(name string, args ...string) (err error, stdout, stderr []string) {
 	return
 }
 
-func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) (*CmdConfig, error) {
+func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) *CmdConfig {
 	cmdConfig := &CmdConfig{}
 	cmdConfig.RootDir = configDir
 	cmdConfig.Spec.Charts = make(map[string]CmdChart)
 	cmdConfig.Namespace = namespace
 	cmdConfig.Logger = logger
+	return cmdConfig
+}
 
-	baseCfg, err := NewConfig(configDir)
+func (c *CmdConfig) Initialize() error {
+	baseCfg, err := NewConfig(c.RootDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	nsCfgDir := filepath.Join(configDir, "environments", namespace)
+	nsCfgDir := filepath.Join(c.RootDir, "environments", c.Namespace)
 	nsCfg, err := NewConfig(nsCfgDir)
 	if err != nil && err != os.ErrNotExist {
-		return nil, err
+		return err
 	}
 
 	// first "import" all variables from baseCfg
-	cmdConfig.Spec.Variables = baseCfg.Spec.Variables
+	c.Spec.Variables = baseCfg.Spec.Variables
 	// then merge in all variables from the nsCfg
-	cmdConfig.MergeVariables(nsCfg)
+	c.MergeVariables(nsCfg)
 
-	for k, c := range baseCfg.Spec.Charts {
-		cmdConfig.Spec.Charts[k] = NewCmdChartFromChart(c)
+	for k, chart := range baseCfg.Spec.Charts {
+		c.Spec.Charts[k] = NewCmdChartFromChart(chart)
 	}
 
-	cmdConfig.populate()
+	c.populate()
 
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp dir: %w", err)
+		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
 
 	// - hydrate
-	if err := cmdConfig.hydrate(tmpDir); err != nil {
-		return nil, err
+	if err := c.hydrate(tmpDir); err != nil {
+		return err
 	}
 
-	return cmdConfig, nil
+	return nil
 }
 
 type CmdConfig struct {
@@ -78,6 +81,7 @@ type CmdConfig struct {
 type CmdSpec struct {
 	Variables []Variable
 	Charts    CmdCharts
+	Ytt       []string
 }
 
 type CmdCharts map[string]CmdChart
@@ -116,23 +120,49 @@ func (c *CmdConfig) prepareVariables(v []Variable) map[string]string {
 
 func (c *CmdConfig) populate() {
 	c.Spec.Charts = findFiles(c.RootDir, c.Namespace, c.Spec.Charts)
+	c.Spec.Ytt = findYttFiles(c.RootDir, c.Namespace)
+}
+
+func findYttFiles(rootDir, namespace string) []string {
+	var result []string
+	for _, dir := range []string{"base", filepath.Join("environments", namespace)} {
+		fPath := filepath.Join(rootDir, dir, "ytt")
+		baseYttDirInfo, err := os.Stat(fPath)
+		if err == nil && baseYttDirInfo.IsDir() {
+			result = append(result, fPath)
+		}
+
+		for _, ext := range []string{"yaml", "yml"} {
+			fPath := filepath.Join(rootDir, dir, fmt.Sprintf("ytt.%s", ext))
+			baseYttFileInfo, err := os.Stat(fPath)
+			if err == nil && !baseYttFileInfo.IsDir() {
+				result = append(result, fPath)
+			}
+		}
+	}
+	return result
 }
 
 func findFiles(rootdir, namespace string, charts map[string]CmdChart) map[string]CmdChart {
 	for name, chart := range charts {
-		var files []string
-		for _, folder := range []string{"base", filepath.Join("environments", namespace)} {
-			for _, ext := range []string{"yaml", "yml"} {
-				fpath := filepath.Join(rootdir, folder, fmt.Sprintf("%s.%s", name, ext))
-				if _, err := os.Stat(fpath); err == nil {
-					files = append(files, fpath)
-				}
-			}
-		}
+		files := findYaml(rootdir, namespace, name)
 		chart.ValuesFileNames = append(chart.ValuesFileNames, files...)
 		charts[name] = chart
 	}
 	return charts
+}
+
+func findYaml(rootDir, namespace, name string) []string {
+	var files []string
+	for _, folder := range []string{"base", filepath.Join("environments", namespace)} {
+		for _, ext := range []string{"yaml", "yml"} {
+			fpath := filepath.Join(rootDir, folder, fmt.Sprintf("%s.%s", name, ext))
+			if _, err := os.Stat(fpath); err == nil {
+				files = append(files, fpath)
+			}
+		}
+	}
+	return files
 }
 
 func hydrateFiles(dirName string, variables map[string]string, paths []string) ([]string, error) {
