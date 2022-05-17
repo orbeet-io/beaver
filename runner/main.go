@@ -1,11 +1,11 @@
 package runner
 
 type Runner struct {
-	config *Config
+	config *CmdConfig
 }
 
 // NewRunner ...
-func NewRunner(cfg *Config) *Runner {
+func NewRunner(cfg *CmdConfig) *Runner {
 	return &Runner{
 		config: cfg,
 	}

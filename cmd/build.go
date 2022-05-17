@@ -19,7 +19,7 @@ func NewBuildCmd() *BuildCmd {
 // Execute ...
 func (cmd *BuildCmd) Execute([]string) error {
 	Logger.Info().Str("namespace", cmd.Args.Namespace).Msg("starting beaver")
-	config, err := runner.NewConfig(Logger, ".", cmd.Args.Namespace)
+	config, err := runner.NewCmdConfig(Logger, ".", cmd.Args.Namespace)
 	if err != nil {
 		Logger.Err(err).Msg("failed to prepare config")
 	}
