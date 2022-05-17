@@ -13,5 +13,10 @@ func NewRunner(cfg *CmdConfig) *Runner {
 
 // Build is in charge of applying commands based on the config data
 func (r *Runner) Build() error {
+	// create helm commands
+
+	// create ytt chart commands
+
+	// create ytt additional command
 	return nil
 }
