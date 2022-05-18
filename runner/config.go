@@ -52,8 +52,9 @@ func NewConfig(configDir string) (*Config, error) {
 	return cfg, nil
 }
 
-func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string) *CmdConfig {
+func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string, dryRun bool) *CmdConfig {
 	cmdConfig := &CmdConfig{}
+	cmdConfig.DryRun = dryRun
 	cmdConfig.RootDir = configDir
 	cmdConfig.Spec.Charts = make(map[string]CmdChart)
 	cmdConfig.Namespace = namespace
@@ -102,6 +103,7 @@ type CmdConfig struct {
 	RootDir   string
 	Namespace string
 	Logger    zerolog.Logger
+	DryRun    bool
 }
 
 type CmdSpec struct {
@@ -136,7 +138,7 @@ func (c CmdChart) BuildArgs(name, namespace string) ([]string, error) {
 		//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 		args = append(args, "-f", c.Path)
 	default:
-		return nil, fmt.Errorf("unsupported chart type: %s", c.Type)
+		return nil, fmt.Errorf("unsupported chart %s type: %q", c.Path, c.Type)
 	}
 	for _, vFile := range c.ValuesFileNames {
 		args = append(args, "-f", vFile)

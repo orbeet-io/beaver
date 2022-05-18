@@ -4,6 +4,9 @@ import "orus.io/cloudcrane/beaver/runner"
 
 type BuildCmd struct {
 	Args struct {
+		DryRun bool `short:"d" long:"dry-run" description:"if set only prints commands but do not run them"`
+	}
+	PositionnalArgs struct {
 		Namespace string `required:"yes" positional-arg-name:"namespace"`
 	} `positional-args:"yes"`
 }
@@ -18,8 +21,8 @@ func NewBuildCmd() *BuildCmd {
 
 // Execute ...
 func (cmd *BuildCmd) Execute([]string) error {
-	Logger.Info().Str("namespace", cmd.Args.Namespace).Msg("starting beaver")
-	config := runner.NewCmdConfig(Logger, ".", cmd.Args.Namespace)
+	Logger.Info().Str("namespace", cmd.PositionnalArgs.Namespace).Msg("starting beaver")
+	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.Namespace, cmd.Args.DryRun)
 	if err := config.Initialize(); err != nil {
 		Logger.Err(err).Msg("failed to prepare config")
 	}

@@ -6,13 +6,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-cmd/cmd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"orus.io/cloudcrane/beaver/testutils"
 )
 
 func TestRunCMD(t *testing.T) {
-	err, stdout, stderr := RunCMD("echo", "p00f")
+	c := cmd.NewCmd("echo", "p00f")
+	err, stdout, stderr := RunCMD(c)
 	require.NoError(t, err)
 	for _, out := range stdout {
 		assert.Equal(t, "p00f", out)
@@ -28,7 +30,7 @@ func TestCmdConfig(t *testing.T) {
 	testNS := "ns1"
 	absConfigDir, err := filepath.Abs("fixtures/")
 	require.NoError(t, err)
-	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS)
+	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
 	require.NoError(t, c.Initialize())
 
 	t.Run("helmCharts", func(t *testing.T) {

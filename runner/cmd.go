@@ -4,8 +4,7 @@ import (
 	"github.com/go-cmd/cmd"
 )
 
-func RunCMD(name string, args ...string) (err error, stdout, stderr []string) {
-	c := cmd.NewCmd(name, args...)
+func RunCMD(c *cmd.Cmd) (err error, stdout, stderr []string) {
 	statusChan := c.Start()
 	status := <-statusChan
 	if status.Error != nil {
