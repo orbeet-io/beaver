@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -26,10 +27,12 @@ func TestYttBuildArgs(t *testing.T) {
 	absConfigDir, err := filepath.Abs("fixtures/")
 	require.NoError(t, err)
 	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
-	require.NoError(t, c.Initialize())
-
-	args, err := c.Spec.Ytt.BuildArgs(testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
+	defer assert.NoError(t, os.RemoveAll(tmpDir))
+	require.NoError(t, c.Initialize(tmpDir))
+
+	args := c.Spec.Ytt.BuildArgs(testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
 	assert.Equal(
 		t,
 		args,

@@ -12,11 +12,16 @@ version: '3'
 vars:
   VERSION: 1.0.0
   OUTPUT: "build/beaver"
+  GOLANGCI_LINT_VERSION: v1.44.0
+  GOLANGCI_LINT_BASE: tools/bin/golangci-lint
+  GOLANGCI_LINT_BIN: "{{.GOLANGCI_LINT_BASE}}-{{.GOLANGCI_LINT_VERSION}}"
+  GOLANGCI_LINT_ARGS:
 
 tasks:
   default:
     cmds:
     - task: build
+
   build:
     desc: build golang project
     cmds:
@@ -28,3 +33,20 @@ tasks:
         main.go
     generates:
     - "{{.OUTPUT}}"
+
+  fetch-golangci-lint:
+    desc: fetch golangci-lint tool
+    cmds:
+      - mkdir -p tools/bin
+      - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b tools/bin {{.GOLANGCI_LINT_VERSION}}
+      - mv {{.GOLANGCI_LINT_BASE}} {{.GOLANGCI_LINT_BIN}}
+    status:
+      - test -x {{.GOLANGCI_LINT_BIN}}
+    generates:
+      - "{{.GOLANGCI_LINT_BIN}}"
+
+  lint:
+    desc: lint our golang code to make sure we catch as much errors as possible
+    deps: [fetch-golangci-lint]
+    cmds:
+      - "{{.GOLANGCI_LINT_BIN}} run {{.GOLANGCI_LINT_ARGS}}"

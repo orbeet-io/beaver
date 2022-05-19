@@ -1,6 +1,7 @@
 syntax: glob
 
 build
+tools/bin
 
 .idea
 *.swp

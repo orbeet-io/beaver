@@ -23,7 +23,7 @@ func NewRunner(cfg *CmdConfig) *Runner {
 func (r *Runner) Build(tmpDir string) error {
 	// create helm commands
 	// create ytt chart commands
-	var cmds map[string]*cmd.Cmd
+	cmds := make(map[string]*cmd.Cmd)
 	for name, chart := range r.config.Spec.Charts {
 		args, err := chart.BuildArgs(name, r.config.Namespace)
 		if err != nil {

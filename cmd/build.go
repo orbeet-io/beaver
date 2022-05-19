@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	"orus.io/cloudcrane/beaver/runner"
 )
@@ -35,7 +35,11 @@ func (cmd *BuildCmd) Execute([]string) error {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	if !cmd.Args.DryRun {
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			if err := os.RemoveAll(tmpDir); err != nil {
+				Logger.Err(err).Str("tempdir", tmpDir).Msg("failed to remove temp dir")
+			}
+		}()
 	}
 
 	if err := config.Initialize(tmpDir); err != nil {
