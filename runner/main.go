@@ -21,30 +21,35 @@ func NewRunner(cfg *CmdConfig) *Runner {
 // Build is in charge of applying commands based on the config data
 func (r *Runner) Build() error {
 	// create helm commands
-	var helmCmds []*cmd.Cmd
-	for _, chart := range r.config.Spec.Charts {
-		name := "FIND_WERE_THE_NAME_COMES_FROM"
+	// create ytt chart commands
+	var cmds []*cmd.Cmd
+	for name, chart := range r.config.Spec.Charts {
 		args, err := chart.BuildArgs(name, r.config.Namespace)
 		if err != nil {
 			return fmt.Errorf("build: failed to build args %w", err)
 		}
-		helmCmds = append(helmCmds, cmd.NewCmd("helm", args...))
+		switch chart.Type {
+		case HelmType:
+			cmds = append(cmds, cmd.NewCmd("/path/to/helm", args...))
+		case YttType:
+			cmds = append(cmds, cmd.NewCmd("/path/to/ytt", args...))
+		default:
+			return fmt.Errorf("unsupported chart %s type: %q", chart.Path, chart.Type)
+		}
 	}
-
-	// create ytt chart commands
 
 	// create ytt additional command
 
 	// run commands or print them
 	if r.config.DryRun {
-		for _, helmCmd := range helmCmds {
+		for _, helmCmd := range cmds {
 			r.config.Logger.Info().
 				Str("command", helmCmd.Name).
 				Str("args", strings.Join(helmCmd.Args, " ")).
 				Msg("would run command")
 		}
 	} else {
-		for _, helmCmd := range helmCmds {
+		for _, helmCmd := range cmds {
 			err, sdtOut, stdErr := RunCMD(helmCmd)
 			if err != nil {
 				r.config.Logger.Err(err).

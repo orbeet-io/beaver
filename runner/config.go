@@ -131,11 +131,9 @@ func (c CmdChart) BuildArgs(name, namespace string) ([]string, error) {
 	var args []string
 	switch c.Type {
 	case HelmType:
-		// helm template -f base.yaml -f base.values.yaml -f ns.yaml -f ns.values.yaml
+		// helm template name vendor/helm/mychart/ --namespace ns1 -f base.values.yaml -f ns.yaml -f ns.values.yaml
 		args = append(args, "template", name, c.Path, "--namespace", namespace)
 	case YttType:
-		// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
-		//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 		args = append(args, "-f", c.Path)
 	default:
 		return nil, fmt.Errorf("unsupported chart %s type: %q", c.Path, c.Type)
@@ -145,6 +143,9 @@ func (c CmdChart) BuildArgs(name, namespace string) ([]string, error) {
 	}
 	return args, nil
 }
+
+// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
+//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 
 func cmdChartFromChart(c Chart) CmdChart {
 	return CmdChart{
