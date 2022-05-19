@@ -19,7 +19,7 @@ func NewRunner(cfg *CmdConfig) *Runner {
 }
 
 // Build is in charge of applying commands based on the config data
-func (r *Runner) Build() error {
+func (r *Runner) Build(tmpDir string) error {
 	// create helm commands
 	// create ytt chart commands
 	var cmds []*cmd.Cmd
@@ -38,8 +38,6 @@ func (r *Runner) Build() error {
 		}
 	}
 
-	// create ytt additional command
-
 	// run commands or print them
 	if r.config.DryRun {
 		for _, helmCmd := range cmds {
@@ -49,12 +47,12 @@ func (r *Runner) Build() error {
 				Msg("would run command")
 		}
 	} else {
-		for _, helmCmd := range cmds {
-			err, sdtOut, stdErr := RunCMD(helmCmd)
+		for _, cmd := range cmds {
+			err, sdtOut, stdErr := RunCMD(cmd)
 			if err != nil {
 				r.config.Logger.Err(err).
-					Str("command", helmCmd.Name).
-					Str("args", strings.Join(helmCmd.Args, " ")).
+					Str("command", cmd.Name).
+					Str("args", strings.Join(cmd.Args, " ")).
 					Str("sdtout", strings.Join(sdtOut, "\n")).
 					Str("stderr", strings.Join(stdErr, "\n")).
 					Msg("failed to run command")
@@ -63,6 +61,8 @@ func (r *Runner) Build() error {
 			}
 		}
 	}
+
+	// create ytt additional command
 
 	return nil
 }

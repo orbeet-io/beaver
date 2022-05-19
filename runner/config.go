@@ -62,7 +62,7 @@ func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string, dry
 	return cmdConfig
 }
 
-func (c *CmdConfig) Initialize() error {
+func (c *CmdConfig) Initialize(tmpDir string) error {
 	baseCfg, err := NewConfig(c.RootDir)
 	if err != nil {
 		return err
@@ -84,11 +84,6 @@ func (c *CmdConfig) Initialize() error {
 	}
 
 	c.populate()
-
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	if err != nil {
-		return fmt.Errorf("failed to create temp dir: %w", err)
-	}
 
 	// - hydrate
 	if err := c.hydrate(tmpDir); err != nil {
@@ -175,9 +170,9 @@ func cmdChartFromChart(c Chart) CmdChart {
 }
 
 // hydrate expands templated variables in our config with concrete values
-func (c *CmdConfig) hydrate(dirName string) error {
+func (c *CmdConfig) hydrate(tmpDir string) error {
 	c.Logger.Debug().Str("charts", fmt.Sprintf("%+v\n", c.Spec.Charts)).Msg("before hydrate")
-	if err := c.hydrateFiles(dirName); err != nil {
+	if err := c.hydrateFiles(tmpDir); err != nil {
 		return err
 	}
 	c.Logger.Debug().Str("charts", fmt.Sprintf("%+v\n", c.Spec.Charts)).Msg("after hydrate")
@@ -240,7 +235,7 @@ func findYaml(rootDir, namespace, name string) []string {
 	return files
 }
 
-func hydrateFiles(dirName string, variables map[string]string, paths []string) ([]string, error) {
+func hydrateFiles(tmpDir string, variables map[string]string, paths []string) ([]string, error) {
 	var result []string
 	for _, path := range paths {
 		fileInfo, err := os.Stat(path)
@@ -255,7 +250,7 @@ func hydrateFiles(dirName string, variables map[string]string, paths []string) (
 		if tmpl, err := template.New(filepath.Base(path)).ParseFiles(path); err != nil {
 			return nil, err
 		} else {
-			if tmpFile, err := ioutil.TempFile(dirName, fmt.Sprintf("%s-", filepath.Base(path))); err != nil {
+			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s-", filepath.Base(path))); err != nil {
 				return nil, fmt.Errorf("hydrateFiles failed to create tempfile: %w", err)
 			} else {
 				defer func() {
