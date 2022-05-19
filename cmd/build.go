@@ -28,12 +28,15 @@ func NewBuildCmd() *BuildCmd {
 func (cmd *BuildCmd) Execute([]string) error {
 	Logger.Info().Str("namespace", cmd.PositionnalArgs.Namespace).Msg("starting beaver")
 
+	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.Namespace, cmd.Args.DryRun)
+
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
-
-	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.Namespace, cmd.Args.DryRun)
+	if !cmd.Args.DryRun {
+		defer os.RemoveAll(tmpDir)
+	}
 
 	if err := config.Initialize(tmpDir); err != nil {
 		Logger.Err(err).Msg("failed to prepare config")

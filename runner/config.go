@@ -109,7 +109,7 @@ type CmdSpec struct {
 
 type Ytt []string
 
-func (y Ytt) BuildArgs(namespace string, compiled []string) ([]string, error) {
+func (y Ytt) BuildArgs(namespace string, compiled []string) []string {
 	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
 	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 	var args []string
@@ -126,7 +126,7 @@ func (y Ytt) BuildArgs(namespace string, compiled []string) ([]string, error) {
 			args = append(args, "-f", entry)
 		}
 	}
-	return args, nil
+	return args
 }
 
 type CmdCharts map[string]CmdChart
