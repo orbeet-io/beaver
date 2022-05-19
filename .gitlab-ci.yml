@@ -1,0 +1,19 @@
+stages:
+- test
+
+unit_tests:
+  stage: test
+  image: quay.orus.io/cc/golang:1.17.6
+  cache:
+    paths:
+    - .gopath/pkg/mod
+    - .gopath/golangci-cache
+    - .cache/gocache
+    - tools/bin
+  artifacts:
+    paths:
+      - build
+      - docs/_build
+  script:
+    - GO111MODULE=on go get -u github.com/go-task/task/v3/cmd/task
+    - GOLANGCI_LINT_ARGS="-j 4" GOLANGCI_LINT_CACHE=$CI_PROJECT_DIR/.gopath/golangci-cache task lint
