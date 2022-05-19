@@ -34,7 +34,9 @@ func TestCmdConfig(t *testing.T) {
 	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
-	defer assert.NoError(t, os.RemoveAll(tmpDir))
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tmpDir))
+	}()
 	require.NoError(t, c.Initialize(tmpDir))
 
 	t.Run("helmCharts", func(t *testing.T) {

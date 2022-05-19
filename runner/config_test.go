@@ -29,7 +29,9 @@ func TestYttBuildArgs(t *testing.T) {
 	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
-	defer assert.NoError(t, os.RemoveAll(tmpDir))
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tmpDir))
+	}()
 	require.NoError(t, c.Initialize(tmpDir))
 
 	args := c.Spec.Ytt.BuildArgs(testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
