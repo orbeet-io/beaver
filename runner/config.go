@@ -109,7 +109,29 @@ type CmdConfig struct {
 type CmdSpec struct {
 	Variables []Variable
 	Charts    CmdCharts
-	Ytt       []string
+	Ytt       Ytt
+}
+
+type Ytt []string
+
+func (y Ytt) BuildArgs(namespace string, compiled []string) ([]string, error) {
+	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
+	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
+	var args []string
+	for _, c := range compiled {
+		args = append(args, "-f", c, "--file-mark", filepath.Base(c))
+	}
+	for _, entry := range []string{
+		filepath.Join("base", "ytt"),
+		filepath.Join("base", "ytt.yaml"),
+		filepath.Join("environments", namespace, "ytt"),
+		filepath.Join("environments", namespace, "ytt.yaml")} {
+
+		if _, err := os.Stat(entry); !os.IsExist(err) {
+			args = append(args, "-f", entry)
+		}
+	}
+	return args, nil
 }
 
 type CmdCharts map[string]CmdChart
@@ -143,9 +165,6 @@ func (c CmdChart) BuildArgs(name, namespace string) ([]string, error) {
 	}
 	return args, nil
 }
-
-// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
-//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 
 func cmdChartFromChart(c Chart) CmdChart {
 	return CmdChart{

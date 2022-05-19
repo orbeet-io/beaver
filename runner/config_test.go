@@ -1,10 +1,12 @@
 package runner
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"orus.io/cloudcrane/beaver/testutils"
 )
 
 func TestConfig(t *testing.T) {
@@ -16,4 +18,28 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "orus.io", config.Spec.Variables[0].Value)
 	assert.Equal(t, "vendor/helm/postgresql", config.Spec.Charts["postgres"].Path)
 	assert.Equal(t, "vendor/ytt/odoo", config.Spec.Charts["odoo"].Path)
+}
+
+func TestYttBuildArgs(t *testing.T) {
+	tl := testutils.NewTestLogger(t)
+	testNS := "ns1"
+	absConfigDir, err := filepath.Abs("fixtures/")
+	require.NoError(t, err)
+	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
+	require.NoError(t, c.Initialize())
+
+	args, err := c.Spec.Ytt.BuildArgs(testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		args,
+		[]string{
+			"-f", "/tmp/postgres.1234.yaml", "--file-mark", "postgres.1234.yaml",
+			"-f", "/tmp/odoo.5678.yaml", "--file-mark", "odoo.5678.yaml",
+			"-f", "base/ytt",
+			"-f", "base/ytt.yaml",
+			"-f", "environments/ns1/ytt",
+			"-f", "environments/ns1/ytt.yaml",
+		},
+	)
 }
