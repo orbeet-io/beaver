@@ -1,11 +1,16 @@
 package runner
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-cmd/cmd"
+	"github.com/go-yaml/yaml"
 )
 
 type Runner struct {
@@ -21,6 +26,9 @@ func NewRunner(cfg *CmdConfig) *Runner {
 
 // Build is in charge of applying commands based on the config data
 func (r *Runner) Build(tmpDir string) error {
+	// TODO: find command full path
+	var yttCmd string = "ytt"
+	var helmCmd string = "helm"
 	// create helm commands
 	// create ytt chart commands
 	cmds := make(map[string]*cmd.Cmd)
@@ -31,9 +39,9 @@ func (r *Runner) Build(tmpDir string) error {
 		}
 		switch chart.Type {
 		case HelmType:
-			cmds[name] = cmd.NewCmd("/path/to/helm", args...)
+			cmds[name] = cmd.NewCmd(helmCmd, args...)
 		case YttType:
-			cmds[name] = cmd.NewCmd("/path/to/ytt", args...)
+			cmds[name] = cmd.NewCmd(yttCmd, args...)
 		default:
 			return fmt.Errorf("unsupported chart %s type: %q", chart.Path, chart.Type)
 		}
@@ -76,7 +84,7 @@ func (r *Runner) Build(tmpDir string) error {
 	// create ytt additional command
 	args := r.config.Spec.Ytt.BuildArgs(r.config.Namespace, compiled)
 
-	cmd := cmd.NewCmd("/path/to/ytt", args...)
+	cmd := cmd.NewCmd(yttCmd, args...)
 	err, stdOut, stdErr := RunCMD(cmd)
 	if err != nil {
 		r.config.Logger.Err(err).
@@ -88,9 +96,89 @@ func (r *Runner) Build(tmpDir string) error {
 
 		return fmt.Errorf("failed to run command: %w", err)
 	}
+	if tmpFile, err := ioutil.TempFile(tmpDir, "full-compiled-"); err != nil {
+		return fmt.Errorf("cannot create full compiled file: %w", err)
+	} else {
+		defer func() {
+			if err := tmpFile.Close(); err != nil {
+				r.config.Logger.Err(err).
+					Str("tmp file", tmpFile.Name()).
+					Msg("failed to close temp file")
+			}
+		}()
+		if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
+			return fmt.Errorf("cannot write full compiled file: %w", err)
+		}
+		if _, err := YamlSplit(r.config.RootDir, tmpFile.Name()); err != nil {
+			return fmt.Errorf("cannot split full compiled file: %w", err)
+		}
+	}
 
-	// TODO read and split resources on stdout and
-	// then write those to build/<namespace>/<apiVersion>.<kind>.<name>.yaml
+	return nil
+}
 
+func YamlSplit(buildDir, filePath string) ([]string, error) {
+	var splitted []string
+	var allResources []map[string]interface{}
+	input, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	if err := UnmarshalAllResources(input, &allResources); err != nil {
+		return nil, err
+	}
+	for _, resource := range allResources {
+		apiVersion, ok := resource["apiVersion"].(string)
+		if !ok {
+			return nil, fmt.Errorf("fail to type assert apiVersion from: %+v", resource)
+		}
+		kind, ok := resource["kind"].(string)
+		if !ok {
+			return nil, fmt.Errorf("kind missing from: %+v", resource)
+		}
+		metadata, ok := resource["metadata"].(map[interface{}]interface{})
+		if !ok {
+			return nil, fmt.Errorf("fail to type assert metadata from: %+v", resource)
+		}
+		name, ok := metadata["name"].(string)
+		if !ok {
+			return nil, fmt.Errorf("fail to type assert metadata.name from: %+v", resource)
+		}
+		filename := fmt.Sprintf("%s.%s.%s.yaml", apiVersion, kind, name)
+		filePath := filepath.Join(buildDir, filename)
+
+		if out, err := yaml.Marshal(resource); err != nil {
+			return nil, fmt.Errorf("cannot marshal resource: %w", err)
+		} else {
+			var fileMod os.FileMode = 0600
+			var dirMod os.FileMode = 0700
+			if err := os.MkdirAll(buildDir, dirMod); err != nil {
+				return nil, fmt.Errorf("cannot create build directory: %w", err)
+			}
+			content := append([]byte("---\n"), out[:]...)
+			if err := os.WriteFile(filePath, content, fileMod); err != nil {
+				return nil, fmt.Errorf("cannot write resource: %w", err)
+			}
+			splitted = append(splitted, filePath)
+		}
+	}
+
+	return splitted, nil
+}
+
+func UnmarshalAllResources(in []byte, out *[]map[string]interface{}) error {
+	r := bytes.NewReader(in)
+	decoder := yaml.NewDecoder(r)
+	for {
+		res := make(map[string]interface{})
+		if err := decoder.Decode(&res); err != nil {
+			// Break when there are no more documents to decode
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+		*out = append(*out, res)
+	}
 	return nil
 }

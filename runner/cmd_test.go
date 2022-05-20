@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-cmd/cmd"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"orus.io/cloudcrane/beaver/testutils"
@@ -85,7 +88,7 @@ func TestFindFiles(t *testing.T) {
 	namespace := "ns1"
 
 	charts := map[string]CmdChart{
-		"postgres": CmdChart{
+		"postgres": {
 			Path:            "postgres",
 			ValuesFileNames: nil,
 		},
@@ -94,4 +97,47 @@ func TestFindFiles(t *testing.T) {
 	newCharts := findFiles(rootdir, namespace, charts)
 	require.Equal(t, 2, len(newCharts["postgres"].ValuesFileNames))
 
+}
+
+func TestYamlSplit(t *testing.T) {
+	namespace := "ns1"
+	rootdir := "fixtures/"
+	compiled := "output.yaml"
+	buildDir := filepath.Join(rootdir, "build", namespace)
+	compiledFiles, err := YamlSplit(buildDir, filepath.Join(rootdir, compiled))
+	require.NoError(t, err)
+	require.Equal(t, 3, len(compiledFiles))
+	for _, filePath := range compiledFiles {
+		fileName := filepath.Base(filePath)
+		tokens := strings.Split(fileName, ".")
+		require.Equal(t, 4, len(tokens))
+
+		// <apiVersion>.<kind>.<name>.yaml
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+		assert.Equal(t, "---", string(content)[:3])
+
+		v := viper.New()
+		v.SetConfigName(strings.TrimSuffix(fileName, path.Ext(fileName)))
+		v.AddConfigPath(strings.TrimSuffix(filePath, fileName))
+		require.NoError(t, v.ReadInConfig())
+
+		resource := make(map[string]interface{})
+		require.NoError(t, v.Unmarshal(&resource))
+		fmt.Printf(">>> resource: %v\n", resource)
+
+		apiVersion, ok := resource["apiversion"].(string)
+		require.True(t, ok)
+		assert.Equal(t, tokens[0], apiVersion)
+
+		kind, ok := resource["kind"].(string)
+		require.True(t, ok)
+		assert.Equal(t, tokens[1], kind)
+
+		metadata, ok := resource["metadata"].(map[string]interface{})
+		require.True(t, ok)
+		name, ok := metadata["name"].(string)
+		require.True(t, ok)
+		assert.Equal(t, tokens[2], name)
+	}
 }
