@@ -57,3 +57,20 @@ tasks:
     deps: []
     cmds:
       - go test ./...
+
+  cover:
+    desc: Run tests with coverage
+    deps: []
+    cmds:
+      - go test -p 1 -covermode=count -coverpkg=./... -coverprofile .cover.cov ./...
+      - go tool cover -func=.cover.cov
+    generates:
+      - .cover.cov
+
+  cover-html:
+    desc: Creates an html report from the last cover run
+    deps: []
+    cmds:
+      - go tool cover -html=.cover.cov -o coverage.html
+    generates:
+      - coverage.html

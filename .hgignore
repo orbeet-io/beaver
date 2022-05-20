@@ -2,6 +2,8 @@ syntax: glob
 
 build
 tools/bin
+.cover.cov
+coverage.html
 
 .idea
 *.swp
