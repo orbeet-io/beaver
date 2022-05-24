@@ -84,20 +84,27 @@ func (r *Runner) Build(tmpDir string) error {
 	// create ytt additional command
 	args := r.config.Spec.Ytt.BuildArgs(r.config.Namespace, compiled)
 
-	cmd := cmd.NewCmd(yttCmd, args...)
-	err, stdOut, stdErr := RunCMD(cmd)
+	yttExtraCmd := cmd.NewCmd(yttCmd, args...)
+	if r.config.DryRun {
+		r.config.Logger.Info().
+			Str("command", yttExtraCmd.Name).
+			Str("args", strings.Join(yttExtraCmd.Args, " ")).
+			Msg("would run command")
+		return nil
+	}
+	err, stdOut, stdErr := RunCMD(yttExtraCmd)
 	if err != nil {
 		r.config.Logger.Err(err).
-			Str("command", cmd.Name).
-			Str("args", strings.Join(cmd.Args, " ")).
+			Str("command", yttExtraCmd.Name).
+			Str("args", strings.Join(yttExtraCmd.Args, " ")).
 			Str("sdtout", strings.Join(stdOut, "\n")).
 			Str("stderr", strings.Join(stdErr, "\n")).
 			Msg("failed to run command")
 
 		return fmt.Errorf("failed to run command: %w", err)
 	}
-	if tmpFile, err := ioutil.TempFile(tmpDir, "full-compiled-"); err != nil {
-		return fmt.Errorf("cannot create full compiled file: %w", err)
+	if tmpFile, err := ioutil.TempFile(tmpDir, "fully-compiled-"); err != nil {
+		return fmt.Errorf("cannot create fully compiled file: %w", err)
 	} else {
 		defer func() {
 			if err := tmpFile.Close(); err != nil {
