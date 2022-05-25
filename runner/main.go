@@ -67,6 +67,9 @@ func (r *Runner) Build(tmpDir string) error {
 					Str("stderr", strings.Join(stdErr, "\n")).
 					Msg("failed to run command")
 
+				// TODO: print error to stderr
+				// Error must be pretty printed to end users /!\
+				fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 				return fmt.Errorf("failed to run command: %w", err)
 			}
 			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-", name)); err != nil {
@@ -101,6 +104,9 @@ func (r *Runner) Build(tmpDir string) error {
 			Str("stderr", strings.Join(stdErr, "\n")).
 			Msg("failed to run command")
 
+		// TODO: print error to stderr
+		// Error message must be pretty printed to end users
+		fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 		return fmt.Errorf("failed to run command: %w", err)
 	}
 	if tmpFile, err := ioutil.TempFile(tmpDir, "fully-compiled-"); err != nil {
