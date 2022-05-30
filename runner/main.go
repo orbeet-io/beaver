@@ -72,7 +72,7 @@ func (r *Runner) Build(tmpDir string) error {
 				fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 				return fmt.Errorf("failed to run command: %w", err)
 			}
-			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-", name)); err != nil {
+			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name)); err != nil {
 				return fmt.Errorf("cannot create compiled file: %w", err)
 			} else {
 				defer tmpFile.Close()
