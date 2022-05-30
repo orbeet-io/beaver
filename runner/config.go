@@ -257,7 +257,8 @@ func hydrateFiles(tmpDir string, variables map[string]string, paths []string) ([
 		if tmpl, err := template.New(filepath.Base(path)).ParseFiles(path); err != nil {
 			return nil, err
 		} else {
-			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s-", filepath.Base(path))); err != nil {
+			ext := filepath.Ext(path)
+			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s-*%s", strings.TrimSuffix(filepath.Base(path), ext), ext)); err != nil {
 				return nil, fmt.Errorf("hydrateFiles failed to create tempfile: %w", err)
 			} else {
 				defer func() {
