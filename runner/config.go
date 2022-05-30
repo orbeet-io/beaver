@@ -70,14 +70,20 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 
 	nsCfgDir := filepath.Join(c.RootDir, "environments", c.Namespace)
 	nsCfg, err := NewConfig(nsCfgDir)
-	if err != nil && err != os.ErrNotExist {
-		return err
+	var nsCfgNotFound bool
+	if err != nil {
+		_, nsCfgNotFound = err.(viper.ConfigFileNotFoundError)
+		if !nsCfgNotFound {
+			return err
+		}
 	}
 
-	// first "import" all variables from baseCfg
-	c.Spec.Variables = baseCfg.Spec.Variables
-	// then merge in all variables from the nsCfg
-	c.MergeVariables(nsCfg)
+	if !nsCfgNotFound {
+		// first "import" all variables from baseCfg
+		c.Spec.Variables = baseCfg.Spec.Variables
+		// then merge in all variables from the nsCfg
+		c.MergeVariables(nsCfg)
+	}
 
 	for k, chart := range baseCfg.Spec.Charts {
 		c.Spec.Charts[k] = cmdChartFromChart(chart)
