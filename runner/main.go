@@ -13,6 +13,11 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
+var (
+	defaultFileMod os.FileMode = 0600
+	defaultDirMod  os.FileMode = 0700
+)
+
 type Runner struct {
 	config *CmdConfig
 }
@@ -122,7 +127,14 @@ func (r *Runner) Build(tmpDir string) error {
 		if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
 			return fmt.Errorf("cannot write full compiled file: %w", err)
 		}
-		if _, err := YamlSplit(r.config.RootDir, tmpFile.Name()); err != nil {
+		outputDir := filepath.Join(r.config.RootDir, "build", r.config.Namespace)
+		if err := os.RemoveAll(outputDir); err != nil {
+			return fmt.Errorf("cannot cleanup output directory: %w", err)
+		}
+		if err := os.MkdirAll(outputDir, defaultDirMod); err != nil {
+			return fmt.Errorf("cannot create output directory: %w", err)
+		}
+		if _, err := YamlSplit(outputDir, tmpFile.Name()); err != nil {
 			return fmt.Errorf("cannot split full compiled file: %w", err)
 		}
 	}
