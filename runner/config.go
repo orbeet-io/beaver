@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/rs/zerolog"
@@ -128,7 +129,7 @@ func (y Ytt) BuildArgs(namespace string, compiled []string) []string {
 		filepath.Join("environments", namespace, "ytt"),
 		filepath.Join("environments", namespace, "ytt.yaml")} {
 
-		if _, err := os.Stat(entry); !os.IsExist(err) {
+		if _, err := os.Stat(entry); !os.IsNotExist(err) {
 			args = append(args, "-f", entry)
 		}
 	}
