@@ -10,6 +10,7 @@ import (
 type BuildCmd struct {
 	Args struct {
 		DryRun bool `short:"d" long:"dry-run" description:"if set only prints commands but do not run them"`
+		Keep   bool `short:"k" long:"keep" descriptions:"Keep the temporary files"`
 	}
 	PositionnalArgs struct {
 		Namespace string `required:"yes" positional-arg-name:"namespace"`
@@ -34,7 +35,7 @@ func (cmd *BuildCmd) Execute([]string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
-	if !cmd.Args.DryRun {
+	if !cmd.Args.Keep {
 		defer func() {
 			if err := os.RemoveAll(tmpDir); err != nil {
 				Logger.Err(err).Str("tempdir", tmpDir).Msg("failed to remove temp dir")
