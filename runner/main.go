@@ -130,10 +130,10 @@ func (r *Runner) Build(tmpDir string) error {
 	return nil
 }
 
-func YamlSplit(buildDir, filePath string) ([]string, error) {
+func YamlSplit(buildDir, inputFile string) ([]string, error) {
 	var splitted []string
 	var allResources []map[string]interface{}
-	input, err := os.ReadFile(filePath)
+	input, err := os.ReadFile(inputFile)
 	if err != nil {
 		return nil, err
 	}
@@ -157,22 +157,20 @@ func YamlSplit(buildDir, filePath string) ([]string, error) {
 		if !ok {
 			return nil, fmt.Errorf("fail to type assert metadata.name from: %+v", resource)
 		}
-		filename := fmt.Sprintf("%s.%s.%s.yaml", apiVersion, kind, name)
-		filePath := filepath.Join(buildDir, filename)
+		filename := fmt.Sprintf("%s.%s.%s.yaml", strings.Replace(apiVersion, "/", "_", -1), kind, name)
+		fPath := filepath.Join(buildDir, filename)
 
 		if out, err := yaml.Marshal(resource); err != nil {
 			return nil, fmt.Errorf("cannot marshal resource: %w", err)
 		} else {
-			var fileMod os.FileMode = 0600
-			var dirMod os.FileMode = 0700
-			if err := os.MkdirAll(buildDir, dirMod); err != nil {
+			if err := os.MkdirAll(buildDir, defaultDirMod); err != nil {
 				return nil, fmt.Errorf("cannot create build directory: %w", err)
 			}
 			content := append([]byte("---\n"), out[:]...)
-			if err := os.WriteFile(filePath, content, fileMod); err != nil {
+			if err := os.WriteFile(fPath, content, defaultFileMod); err != nil {
 				return nil, fmt.Errorf("cannot write resource: %w", err)
 			}
-			splitted = append(splitted, filePath)
+			splitted = append(splitted, fPath)
 		}
 	}
 
