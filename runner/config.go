@@ -120,7 +120,7 @@ func (y Ytt) BuildArgs(namespace string, compiled []string) []string {
 	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 	var args []string
 	for _, c := range compiled {
-		args = append(args, "-f", c, "--file-mark", filepath.Base(c))
+		args = append(args, "-f", c, fmt.Sprintf("--file-mark=%s:type=yaml-plain", filepath.Base(c)))
 	}
 	for _, entry := range []string{
 		filepath.Join("base", "ytt"),
