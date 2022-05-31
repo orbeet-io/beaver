@@ -17,3 +17,4 @@ unit_tests:
   script:
     - GO111MODULE=on go get -d -u github.com/go-task/task/v3/cmd/task
     - GOLANGCI_LINT_ARGS="-j 4" GOLANGCI_LINT_CACHE=$CI_PROJECT_DIR/.gopath/golangci-cache task lint
+    - task test
