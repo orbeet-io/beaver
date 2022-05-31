@@ -198,7 +198,7 @@ func (c *CmdConfig) prepareVariables(v []Variable) map[string]string {
 }
 
 func (c *CmdConfig) populate() {
-	c.Spec.Charts = findFiles(c.RootDir, c.Namespace, c.Spec.Charts)
+	c.Spec.Charts = FindFiles(c.RootDir, c.Namespace, c.Spec.Charts)
 	c.Spec.Ytt = findYttFiles(c.RootDir, c.Namespace)
 }
 
@@ -222,7 +222,7 @@ func findYttFiles(rootDir, namespace string) []string {
 	return result
 }
 
-func findFiles(rootdir, namespace string, charts map[string]CmdChart) map[string]CmdChart {
+func FindFiles(rootdir, namespace string, charts map[string]CmdChart) map[string]CmdChart {
 	for name, chart := range charts {
 		files := findYaml(rootdir, namespace, name)
 		chart.ValuesFileNames = append(chart.ValuesFileNames, files...)

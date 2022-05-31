@@ -1,0 +1,3 @@
+#@data/values
+---
+hello: {{.namespace}}-base

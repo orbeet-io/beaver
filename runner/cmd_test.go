@@ -1,4 +1,4 @@
-package runner
+package runner_test
 
 import (
 	"fmt"
@@ -14,11 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"orus.io/cloudcrane/beaver/testutils"
+	"orus.io/cloudcrane/beaver/runner"
 )
 
 func TestRunCMD(t *testing.T) {
 	c := cmd.NewCmd("echo", "p00f")
-	err, stdout, stderr := RunCMD(c)
+	err, stdout, stderr := runner.RunCMD(c)
 	require.NoError(t, err)
 	for _, out := range stdout {
 		assert.Equal(t, "p00f", out)
@@ -32,9 +33,9 @@ func TestRunCMD(t *testing.T) {
 func TestCmdConfig(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	testNS := "ns1"
-	absConfigDir, err := filepath.Abs("fixtures/")
+	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
-	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
@@ -84,27 +85,25 @@ postgresqlDatabase: "<path:k8s.orus.io/data/ns1/postgres#database>"
 }
 
 func TestFindFiles(t *testing.T) {
-	rootdir := "fixtures/"
 	namespace := "ns1"
 
-	charts := map[string]CmdChart{
+	charts := map[string]runner.CmdChart{
 		"postgres": {
 			Path:            "postgres",
 			ValuesFileNames: nil,
 		},
 	}
 
-	newCharts := findFiles(rootdir, namespace, charts)
+	newCharts := runner.FindFiles(fixtures, namespace, charts)
 	require.Equal(t, 2, len(newCharts["postgres"].ValuesFileNames))
 
 }
 
 func TestYamlSplit(t *testing.T) {
 	namespace := "ns1"
-	rootdir := "fixtures/"
 	compiled := "output.yaml"
-	buildDir := filepath.Join(rootdir, "build", namespace)
-	compiledFiles, err := YamlSplit(buildDir, filepath.Join(rootdir, compiled))
+	buildDir := filepath.Join(fixtures, "build", namespace)
+	compiledFiles, err := runner.YamlSplit(buildDir, filepath.Join(fixtures, compiled))
 	require.NoError(t, err)
 	require.Equal(t, 3, len(compiledFiles))
 	for _, filePath := range compiledFiles {

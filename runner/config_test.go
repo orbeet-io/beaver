@@ -1,4 +1,4 @@
-package runner
+package runner_test
 
 import (
 	"os"
@@ -8,11 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"orus.io/cloudcrane/beaver/testutils"
+	"orus.io/cloudcrane/beaver/runner"
+)
+
+var (
+	fixtures = "fixtures/f1"
+	secondFixtures = "fixtures/f2"
 )
 
 func TestConfig(t *testing.T) {
-	configDir := "fixtures/"
-	config, err := NewConfig(configDir)
+	config, err := runner.NewConfig(fixtures)
 	require.NoError(t, err)
 	// first config.spec.variables entry name should be VAULT_KV in our test file
 	assert.Equal(t, "VAULT_KV", config.Spec.Variables[0].Name)
@@ -21,12 +26,17 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "vendor/ytt/odoo", config.Spec.Charts["odoo"].Path)
 }
 
+func TestNamespaceConfigNotMandatory(t *testing.T) {
+	_, err := runner.NewConfig(secondFixtures)
+	require.NoError(t, err)
+}
+
 func TestYttBuildArgs(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	testNS := "ns1"
-	absConfigDir, err := filepath.Abs("fixtures/")
+	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
-	c := NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
@@ -34,16 +44,16 @@ func TestYttBuildArgs(t *testing.T) {
 	}()
 	require.NoError(t, c.Initialize(tmpDir))
 
-	args := c.Spec.Ytt.BuildArgs("fixtures", testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	args := c.Spec.Ytt.BuildArgs(fixtures, testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
 	assert.Equal(
 		t,
 		[]string{
 			"-f", "/tmp/postgres.1234.yaml", "--file-mark=postgres.1234.yaml:type=yaml-plain",
 			"-f", "/tmp/odoo.5678.yaml", "--file-mark=odoo.5678.yaml:type=yaml-plain",
-			"-f", "fixtures/base/ytt",
-			"-f", "fixtures/base/ytt.yml",
-			"-f", "fixtures/environments/ns1/ytt",
-			"-f", "fixtures/environments/ns1/ytt.yaml",
+			"-f", filepath.Join(fixtures, "base/ytt"),
+			"-f", filepath.Join(fixtures, "base/ytt.yml"),
+			"-f", filepath.Join(fixtures, "environments/ns1/ytt"),
+			"-f", filepath.Join(fixtures, "environments/ns1/ytt.yaml"),
 		},
 		args,
 	)

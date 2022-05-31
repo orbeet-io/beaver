@@ -1,0 +1,6 @@
+#@data/values
+---
+odoo:
+  image: odoo
+  serviceAccountName: {{.namespace}}-odoo
+  role: {{.ROLE}}
