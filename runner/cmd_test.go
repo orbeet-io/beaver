@@ -124,7 +124,6 @@ func TestYamlSplit(t *testing.T) {
 
 		resource := make(map[string]interface{})
 		require.NoError(t, v.Unmarshal(&resource))
-		fmt.Printf(">>> resource: %v\n", resource)
 
 		apiVersion, ok := resource["apiversion"].(string)
 		require.True(t, ok)

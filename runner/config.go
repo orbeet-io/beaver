@@ -116,7 +116,7 @@ type CmdSpec struct {
 
 type Ytt []string
 
-func (y Ytt) BuildArgs(namespace string, compiled []string) []string {
+func (y Ytt) BuildArgs(rootDir, namespace string, compiled []string) []string {
 	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
 	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 	var args []string
@@ -124,10 +124,12 @@ func (y Ytt) BuildArgs(namespace string, compiled []string) []string {
 		args = append(args, "-f", c, fmt.Sprintf("--file-mark=%s:type=yaml-plain", filepath.Base(c)))
 	}
 	for _, entry := range []string{
-		filepath.Join("base", "ytt"),
-		filepath.Join("base", "ytt.yaml"),
-		filepath.Join("environments", namespace, "ytt"),
-		filepath.Join("environments", namespace, "ytt.yaml")} {
+		filepath.Join(rootDir, "base", "ytt"),
+		filepath.Join(rootDir, "base", "ytt.yaml"),
+		filepath.Join(rootDir, "base", "ytt.yml"),
+		filepath.Join(rootDir, "environments", namespace, "ytt"),
+		filepath.Join(rootDir, "environments", namespace, "ytt.yaml"),
+		filepath.Join(rootDir, "environments", namespace, "ytt.yml")} {
 
 		if _, err := os.Stat(entry); !os.IsNotExist(err) {
 			args = append(args, "-f", entry)

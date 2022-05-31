@@ -90,7 +90,7 @@ func (r *Runner) Build(tmpDir string) error {
 	}
 
 	// create ytt additional command
-	args := r.config.Spec.Ytt.BuildArgs(r.config.Namespace, compiled)
+	args := r.config.Spec.Ytt.BuildArgs(r.config.RootDir, r.config.Namespace, compiled)
 
 	yttExtraCmd := cmd.NewCmd(yttCmd, args...)
 	if r.config.DryRun {

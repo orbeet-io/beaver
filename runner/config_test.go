@@ -34,17 +34,17 @@ func TestYttBuildArgs(t *testing.T) {
 	}()
 	require.NoError(t, c.Initialize(tmpDir))
 
-	args := c.Spec.Ytt.BuildArgs(testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	args := c.Spec.Ytt.BuildArgs("fixtures", testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
 	assert.Equal(
 		t,
-		args,
 		[]string{
-			"-f", "/tmp/postgres.1234.yaml", "--file-mark", "postgres.1234.yaml",
-			"-f", "/tmp/odoo.5678.yaml", "--file-mark", "odoo.5678.yaml",
-			"-f", "base/ytt",
-			"-f", "base/ytt.yaml",
-			"-f", "environments/ns1/ytt",
-			"-f", "environments/ns1/ytt.yaml",
+			"-f", "/tmp/postgres.1234.yaml", "--file-mark=postgres.1234.yaml:type=yaml-plain",
+			"-f", "/tmp/odoo.5678.yaml", "--file-mark=odoo.5678.yaml:type=yaml-plain",
+			"-f", "fixtures/base/ytt",
+			"-f", "fixtures/base/ytt.yml",
+			"-f", "fixtures/environments/ns1/ytt",
+			"-f", "fixtures/environments/ns1/ytt.yaml",
 		},
+		args,
 	)
 }
