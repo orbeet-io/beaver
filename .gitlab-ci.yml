@@ -3,6 +3,7 @@ stages:
   - test
   - lint
   - build
+  - upload
 
 unit_tests:
   stage: test
@@ -44,5 +45,17 @@ build:
       - .gopath/golangci-cache
       - .cache/gocache
       - tools/bin
+      - build
   script:
     - tools/bin/task build
+
+upload:
+  image: quay.orus.io/docker_mirror/alpine:3.10
+  stage: upload
+  cache:
+    key: tooling
+    paths:
+      - build
+  script:
+    - apk add curl
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file build/beaver "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/beaver/latest/beaver"'
