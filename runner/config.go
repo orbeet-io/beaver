@@ -23,10 +23,37 @@ type Chart struct {
 	Path string `mapstructure:"path"`
 }
 
+type Arg struct {
+	Flag  string `mapstructure:"flag"`
+	Value string `mapstructure:"value"`
+}
+
+type Create struct {
+	Type string `mapstructure:"type"`
+	Name string `mapstructure:"name"`
+	Args []Arg  `mapstructure:"args"`
+}
+
+func (k CmdCreate) BuildArgs(namespace string, args []Arg) []string {
+	output := []string{
+		"-n", namespace,
+		"create",
+		k.Type,
+		k.Name,
+		"--dry-run=client",
+		"-o", "yaml"}
+
+	for _, arg := range args {
+		output = append(output, arg.Flag, arg.Value)
+	}
+	return output
+}
+
 // Spec ...
 type Spec struct {
 	Variables []Variable       `mapstructure:"variables"`
 	Charts    map[string]Chart `mapstructure:"charts"`
+	Creates   []Create         `mapstructure:"create"`
 }
 
 // Config is the configuration we get after parsing our beaver.yml file
@@ -97,6 +124,18 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		}
 	}
 
+	c.Spec.Creates = make(map[CmdCreate][]Arg)
+	for _, k := range baseCfg.Spec.Creates {
+		cmdCreate := CmdCreate{Type: k.Type, Name: k.Name}
+		c.Spec.Creates[cmdCreate] = k.Args
+	}
+	if !nsCfgNotFound {
+		for _, k := range nsCfg.Spec.Creates {
+			cmdCreate := CmdCreate{Type: k.Type, Name: k.Name}
+			c.Spec.Creates[cmdCreate] = k.Args
+		}
+	}
+
 	c.populate()
 
 	// - hydrate
@@ -105,6 +144,11 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 	}
 
 	return nil
+}
+
+type CmdCreate struct {
+	Type string `mapstructure:"type"`
+	Name string `mapstructure:"name"`
 }
 
 type CmdConfig struct {
@@ -119,6 +163,7 @@ type CmdSpec struct {
 	Variables []Variable
 	Charts    CmdCharts
 	Ytt       Ytt
+	Creates   map[CmdCreate][]Arg
 }
 
 type Ytt []string

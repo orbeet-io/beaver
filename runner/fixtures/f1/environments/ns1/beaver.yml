@@ -4,3 +4,9 @@ spec:
   variables:
   - name: VAULT_KV
     value: k8s.orus.io
+  create:
+  - type: configmap
+    name: xbus-pipelines
+    args:
+    - flag: --from-file
+      value: environments/ns1/pipelines

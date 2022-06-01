@@ -7,12 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"orus.io/cloudcrane/beaver/testutils"
 	"orus.io/cloudcrane/beaver/runner"
+	"orus.io/cloudcrane/beaver/testutils"
 )
 
 var (
-	fixtures = "fixtures/f1"
+	fixtures       = "fixtures/f1"
 	secondFixtures = "fixtures/f2"
 )
 
@@ -57,4 +57,33 @@ func TestYttBuildArgs(t *testing.T) {
 		},
 		args,
 	)
+}
+
+func TestCreateConfig(t *testing.T) {
+	tl := testutils.NewTestLogger(t)
+	testNS := "ns1"
+	absConfigDir, err := filepath.Abs(fixtures)
+	require.NoError(t, err)
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tmpDir))
+	}()
+	require.NoError(t, c.Initialize(tmpDir))
+	require.Equal(t, 1, len(c.Spec.Creates))
+	for k, a := range c.Spec.Creates {
+		args := k.BuildArgs(c.Namespace, a)
+		assert.Equal(
+			t,
+			[]string{
+				"-n", c.Namespace,
+				"create",
+				"configmap", "xbus-pipelines",
+				"--dry-run=client", "-o", "yaml",
+				"--from-file", "environments/ns1/pipelines",
+			},
+			args,
+		)
+	}
 }

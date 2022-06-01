@@ -34,6 +34,7 @@ func (r *Runner) Build(tmpDir string) error {
 	// TODO: find command full path
 	var yttCmd string = "ytt"
 	var helmCmd string = "helm"
+	var kubectlCmd string = "kubectl"
 	// create helm commands
 	// create ytt chart commands
 	cmds := make(map[string]*cmd.Cmd)
@@ -51,14 +52,19 @@ func (r *Runner) Build(tmpDir string) error {
 			return fmt.Errorf("unsupported chart %s type: %q", chart.Path, chart.Type)
 		}
 	}
+	for create, args := range r.config.Spec.Creates {
+		strArgs := create.BuildArgs(r.config.Namespace, args)
+		name := fmt.Sprintf("%s_%s", create.Type, create.Name)
+		cmds[name] = cmd.NewCmd(kubectlCmd, strArgs...)
+	}
 
 	// run commands or print them
 	var compiled []string
 	if r.config.DryRun {
-		for _, helmCmd := range cmds {
+		for _, cmd := range cmds {
 			r.config.Logger.Info().
-				Str("command", helmCmd.Name).
-				Str("args", strings.Join(helmCmd.Args, " ")).
+				Str("command", cmd.Name).
+				Str("args", strings.Join(cmd.Args, " ")).
 				Msg("would run command")
 		}
 	} else {
