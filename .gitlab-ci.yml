@@ -1,20 +1,48 @@
+---
 stages:
-- test
+  - test
+  - lint
+  - build
 
 unit_tests:
   stage: test
   image: quay.orus.io/cc/golang:1.17.6
   cache:
+    key: tooling
     paths:
-    - .gopath/pkg/mod
-    - .gopath/golangci-cache
-    - .cache/gocache
-    - tools/bin
+      - .gopath/pkg/mod
+      - .gopath/golangci-cache
+      - .cache/gocache
+      - tools/bin
+  script:
+    - sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b tools/bin
+    - tools/bin/task test
+
+lint:
+  stage: lint
+  image: quay.orus.io/cc/golang:1.17.6
+  cache:
+    key: tooling
+    paths:
+      - .gopath/pkg/mod
+      - .gopath/golangci-cache
+      - .cache/gocache
+      - tools/bin
+  script:
+    - GOLANGCI_LINT_ARGS="-j 4" GOLANGCI_LINT_CACHE=$CI_PROJECT_DIR/.gopath/golangci-cache tools/bin/task lint
+
+build:
+  stage: build
+  image: quay.orus.io/cc/golang:1.17.6
   artifacts:
     paths:
       - build
-      - docs/_build
+  cache:
+    key: tooling
+    paths:
+      - .gopath/pkg/mod
+      - .gopath/golangci-cache
+      - .cache/gocache
+      - tools/bin
   script:
-    - GO111MODULE=on go get -d -u github.com/go-task/task/v3/cmd/task
-    - GOLANGCI_LINT_ARGS="-j 4" GOLANGCI_LINT_CACHE=$CI_PROJECT_DIR/.gopath/golangci-cache task lint
-    - task test
+    - tools/bin/task build
