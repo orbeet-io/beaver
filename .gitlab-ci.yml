@@ -50,7 +50,7 @@ build:
     - tools/bin/task build
 
 upload:
-  image: quay.orus.io/docker_mirror/alpine:3.10
+  image: curlimages/curl:latest
   stage: upload
   cache:
     key: tooling
