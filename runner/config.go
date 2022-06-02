@@ -89,6 +89,13 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 	for k, chart := range baseCfg.Spec.Charts {
 		c.Spec.Charts[k] = cmdChartFromChart(chart)
 	}
+	// we add namespaced charts after base chart in order to overwrite them
+	// in case they exists in base config
+	if !nsCfgNotFound {
+		for k, chart := range nsCfg.Spec.Charts {
+			c.Spec.Charts[k] = cmdChartFromChart(chart)
+		}
+	}
 
 	c.populate()
 
