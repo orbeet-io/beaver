@@ -169,7 +169,7 @@ func YamlSplit(buildDir, inputFile string) ([]string, error) {
 		if !ok {
 			return nil, fmt.Errorf("fail to type assert metadata.name from: %+v", resource)
 		}
-		filename := fmt.Sprintf("%s.%s.%s.yaml", strings.Replace(apiVersion, "/", "_", -1), kind, name)
+		filename := fmt.Sprintf("%s.%s.%s.yaml", kind, strings.Replace(apiVersion, "/", "_", -1), name)
 		fPath := filepath.Join(buildDir, filename)
 
 		if out, err := yaml.Marshal(resource); err != nil {

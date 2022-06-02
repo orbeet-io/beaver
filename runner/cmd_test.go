@@ -124,13 +124,13 @@ func TestYamlSplit(t *testing.T) {
 		resource := make(map[string]interface{})
 		require.NoError(t, v.Unmarshal(&resource))
 
-		apiVersion, ok := resource["apiversion"].(string)
-		require.True(t, ok)
-		assert.Equal(t, tokens[0], apiVersion)
-
 		kind, ok := resource["kind"].(string)
 		require.True(t, ok)
-		assert.Equal(t, tokens[1], kind)
+		assert.Equal(t, tokens[0], kind)
+
+		apiVersion, ok := resource["apiversion"].(string)
+		require.True(t, ok)
+		assert.Equal(t, tokens[1], apiVersion)
 
 		metadata, ok := resource["metadata"].(map[string]interface{})
 		require.True(t, ok)
