@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"orus.io/cloudcrane/beaver/testutils"
 	"orus.io/cloudcrane/beaver/runner"
+	"orus.io/cloudcrane/beaver/testutils"
 )
 
 func TestRunCMD(t *testing.T) {
@@ -32,10 +32,10 @@ func TestRunCMD(t *testing.T) {
 
 func TestCmdConfig(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
-	testNS := "ns1"
+	testPath := filepath.Join("environments", "ns1")
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testPath, false)
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
@@ -93,10 +93,13 @@ func TestFindFiles(t *testing.T) {
 			ValuesFileNames: nil,
 		},
 	}
+	layers := []string{
+		fmt.Sprintf("fixtures/f1/environments/%s", namespace),
+		"fixtures/f1/base",
+	}
 
-	newCharts := runner.FindFiles(fixtures, namespace, charts)
+	newCharts := runner.FindFiles(layers, charts)
 	require.Equal(t, 2, len(newCharts["postgres"].ValuesFileNames))
-
 }
 
 func TestYamlSplit(t *testing.T) {

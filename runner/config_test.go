@@ -17,7 +17,7 @@ var (
 )
 
 func TestConfig(t *testing.T) {
-	config, err := runner.NewConfig(fixtures)
+	config, err := runner.NewConfig(filepath.Join(fixtures, "base"))
 	require.NoError(t, err)
 	// first config.spec.variables entry name should be VAULT_KV in our test file
 	assert.Equal(t, "VAULT_KV", config.Spec.Variables[0].Name)
@@ -26,14 +26,9 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "vendor/ytt/odoo", config.Spec.Charts["odoo"].Path)
 }
 
-func TestNamespaceConfigNotMandatory(t *testing.T) {
-	_, err := runner.NewConfig(secondFixtures)
-	require.NoError(t, err)
-}
-
 func TestYttBuildArgs(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
-	testNS := "ns1"
+	testNS := "environments/ns1"
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)
@@ -44,7 +39,12 @@ func TestYttBuildArgs(t *testing.T) {
 	}()
 	require.NoError(t, c.Initialize(tmpDir))
 
-	args := c.Spec.Ytt.BuildArgs(fixtures, testNS, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	layers := []string{
+		filepath.Join(fixtures, "base"),
+		filepath.Join(fixtures, "environments/ns1"),
+	}
+
+	args := c.Spec.Ytt.BuildArgs(layers, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
 	assert.Equal(
 		t,
 		[]string{
@@ -61,7 +61,7 @@ func TestYttBuildArgs(t *testing.T) {
 
 func TestCreateConfig(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
-	testNS := "ns1"
+	testNS := "environments/ns1"
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false)

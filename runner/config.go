@@ -51,6 +51,8 @@ func (k CmdCreate) BuildArgs(namespace string, args []Arg) []string {
 
 // Spec ...
 type Spec struct {
+	Inherit   string           `mapstructure:"inherit"`
+	NameSpace string           `mapstructure:"namespace"`
 	Variables []Variable       `mapstructure:"variables"`
 	Charts    map[string]Chart `mapstructure:"charts"`
 	Creates   []Create         `mapstructure:"create"`
@@ -80,70 +82,106 @@ func NewConfig(configDir string) (*Config, error) {
 	return cfg, nil
 }
 
-func NewCmdConfig(logger zerolog.Logger, configDir string, namespace string, dryRun bool) *CmdConfig {
+func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool) *CmdConfig {
 	cmdConfig := &CmdConfig{}
 	cmdConfig.DryRun = dryRun
-	cmdConfig.RootDir = configDir
+	cmdConfig.RootDir = rootDir
+	cmdConfig.Layers = append(cmdConfig.Layers, configDir)
 	cmdConfig.Spec.Charts = make(map[string]CmdChart)
-	cmdConfig.Namespace = namespace
+	cmdConfig.Spec.Creates = make(map[CmdCreate][]Arg)
+	cmdConfig.Namespace = ""
 	cmdConfig.Logger = logger
 	return cmdConfig
 }
 
 func (c *CmdConfig) Initialize(tmpDir string) error {
-	baseCfg, err := NewConfig(c.RootDir)
-	if err != nil {
-		return err
+	if len(c.Layers) != 1 {
+		return fmt.Errorf("you must only have one layer when calling Initialize, found: %d", len(c.Layers))
 	}
+	var (
+		weNeedToGoDeeper = true
+		configLayers     []*Config
+	)
 
-	nsCfgDir := filepath.Join(c.RootDir, "environments", c.Namespace)
-	nsCfg, err := NewConfig(nsCfgDir)
-	var nsCfgNotFound bool
+	resolvedConfigDir := filepath.Join(c.RootDir, c.Layers[0])
+	absConfigDir, err := filepath.Abs(resolvedConfigDir)
 	if err != nil {
-		_, nsCfgNotFound = err.(viper.ConfigFileNotFoundError)
-		if !nsCfgNotFound {
-			return err
+		return fmt.Errorf("failed to find abs() for %s: %w", resolvedConfigDir, err)
+	}
+	dir := absConfigDir
+
+	for weNeedToGoDeeper {
+		config, err := c.newConfigFromDir(dir)
+		if err != nil {
+			return fmt.Errorf("failed to create config from %s: %w", dir, err)
+		}
+		// first config dir must return a real config...
+		// others can be skipped
+		if config == nil && len(configLayers) == 0 {
+			return fmt.Errorf("failed to find config in dir: %s", dir)
+		}
+
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			return fmt.Errorf("failed to find abs() for %s: %w", dir, err)
+		}
+
+		c.Layers = append(c.Layers, absDir)
+		configLayers = append(configLayers, config)
+
+		if config == nil || config.Spec.Inherit == "" {
+			weNeedToGoDeeper = false
+		} else {
+			resolvedDir := filepath.Join(absDir, config.Spec.Inherit)
+			newDir, err := filepath.Abs(resolvedDir)
+			if err != nil {
+				return fmt.Errorf("failed to find abs() for %s: %w", resolvedDir, err)
+			}
+			dir = newDir
 		}
 	}
 
-	if !nsCfgNotFound {
-		// first "import" all variables from baseCfg
-		c.Spec.Variables = baseCfg.Spec.Variables
-		// then merge in all variables from the nsCfg
-		c.MergeVariables(nsCfg)
+	// reverse our layers list
+	for i, j := 0, len(configLayers)-1; i < j; i, j = i+1, j-1 {
+		configLayers[i], configLayers[j] = configLayers[j], configLayers[i]
 	}
 
-	for k, chart := range baseCfg.Spec.Charts {
-		c.Spec.Charts[k] = cmdChartFromChart(chart)
-	}
-	// we add namespaced charts after base chart in order to overwrite them
-	// in case they exists in base config
-	if !nsCfgNotFound {
-		for k, chart := range nsCfg.Spec.Charts {
+	fmt.Printf("%+v\n", configLayers)
+	for _, config := range configLayers {
+		fmt.Printf("%+v\n", config)
+		c.Namespace = config.Spec.NameSpace
+		c.MergeVariables(config)
+
+		for k, chart := range config.Spec.Charts {
 			c.Spec.Charts[k] = cmdChartFromChart(chart)
 		}
-	}
 
-	c.Spec.Creates = make(map[CmdCreate][]Arg)
-	for _, k := range baseCfg.Spec.Creates {
-		cmdCreate := CmdCreate{Type: k.Type, Name: k.Name}
-		c.Spec.Creates[cmdCreate] = k.Args
-	}
-	if !nsCfgNotFound {
-		for _, k := range nsCfg.Spec.Creates {
+		for _, k := range config.Spec.Creates {
 			cmdCreate := CmdCreate{Type: k.Type, Name: k.Name}
 			c.Spec.Creates[cmdCreate] = k.Args
 		}
 	}
 
-	c.populate()
-
-	// - hydrate
-	if err := c.hydrate(tmpDir); err != nil {
-		return err
+	for i, j := 0, len(c.Layers)-1; i < j; i, j = i+1, j-1 {
+		c.Layers[i], c.Layers[j] = c.Layers[j], c.Layers[i]
 	}
-
+	c.populate()
+	if err := c.hydrate(tmpDir); err != nil {
+		return fmt.Errorf("failed to hydrate tmpDir (%s): %w", tmpDir, err)
+	}
 	return nil
+}
+
+func (c *CmdConfig) newConfigFromDir(dir string) (*Config, error) {
+	cfg, err := NewConfig(dir)
+	var cfgNotFound bool
+	if err != nil {
+		_, cfgNotFound = err.(viper.ConfigFileNotFoundError)
+		if !cfgNotFound {
+			return nil, err
+		}
+	}
+	return cfg, nil
 }
 
 type CmdCreate struct {
@@ -154,6 +192,7 @@ type CmdCreate struct {
 type CmdConfig struct {
 	Spec      CmdSpec
 	RootDir   string
+	Layers    []string
 	Namespace string
 	Logger    zerolog.Logger
 	DryRun    bool
@@ -168,23 +207,21 @@ type CmdSpec struct {
 
 type Ytt []string
 
-func (y Ytt) BuildArgs(rootDir, namespace string, compiled []string) []string {
+func (y Ytt) BuildArgs(layers, compiled []string) []string {
 	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
 	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 	var args []string
 	for _, c := range compiled {
 		args = append(args, "-f", c, fmt.Sprintf("--file-mark=%s:type=yaml-plain", filepath.Base(c)))
 	}
-	for _, entry := range []string{
-		filepath.Join(rootDir, "base", "ytt"),
-		filepath.Join(rootDir, "base", "ytt.yaml"),
-		filepath.Join(rootDir, "base", "ytt.yml"),
-		filepath.Join(rootDir, "environments", namespace, "ytt"),
-		filepath.Join(rootDir, "environments", namespace, "ytt.yaml"),
-		filepath.Join(rootDir, "environments", namespace, "ytt.yml")} {
+	for _, layer := range layers {
+		for _, ext := range []string{"", ".yaml", ".yml"} {
+			entry := fmt.Sprintf("ytt%s", ext)
+			entryPath := filepath.Join(layer, entry)
 
-		if _, err := os.Stat(entry); !os.IsNotExist(err) {
-			args = append(args, "-f", entry)
+			if _, err := os.Stat(entryPath); !os.IsNotExist(err) {
+				args = append(args, "-f", entryPath)
+			}
 		}
 	}
 	return args
@@ -250,21 +287,22 @@ func (c *CmdConfig) prepareVariables(v []Variable) map[string]string {
 }
 
 func (c *CmdConfig) populate() {
-	c.Spec.Charts = FindFiles(c.RootDir, c.Namespace, c.Spec.Charts)
-	c.Spec.Ytt = findYttFiles(c.RootDir, c.Namespace)
+	c.Spec.Charts = FindFiles(c.Layers, c.Spec.Charts)
+	c.Spec.Ytt = findYttFiles(c.Layers)
 }
 
-func findYttFiles(rootDir, namespace string) []string {
+func findYttFiles(layers []string) []string {
 	var result []string
-	for _, dir := range []string{"base", filepath.Join("environments", namespace)} {
-		fPath := filepath.Join(rootDir, dir, "ytt")
+
+	for _, layer := range layers {
+		fPath := filepath.Join(layer, "ytt")
 		baseYttDirInfo, err := os.Stat(fPath)
 		if err == nil && baseYttDirInfo.IsDir() {
 			result = append(result, fPath)
 		}
 
 		for _, ext := range []string{"yaml", "yml"} {
-			fPath := filepath.Join(rootDir, dir, fmt.Sprintf("ytt.%s", ext))
+			fPath := filepath.Join(layer, fmt.Sprintf("ytt.%s", ext))
 			baseYttFileInfo, err := os.Stat(fPath)
 			if err == nil && !baseYttFileInfo.IsDir() {
 				result = append(result, fPath)
@@ -274,20 +312,20 @@ func findYttFiles(rootDir, namespace string) []string {
 	return result
 }
 
-func FindFiles(rootdir, namespace string, charts map[string]CmdChart) map[string]CmdChart {
+func FindFiles(layers []string, charts map[string]CmdChart) map[string]CmdChart {
 	for name, chart := range charts {
-		files := findYaml(rootdir, namespace, name)
+		files := findYaml(layers, name)
 		chart.ValuesFileNames = append(chart.ValuesFileNames, files...)
 		charts[name] = chart
 	}
 	return charts
 }
 
-func findYaml(rootDir, namespace, name string) []string {
+func findYaml(layers []string, name string) []string {
 	var files []string
-	for _, folder := range []string{"base", filepath.Join("environments", namespace)} {
+	for _, layer := range layers {
 		for _, ext := range []string{"yaml", "yml"} {
-			fpath := filepath.Join(rootDir, folder, fmt.Sprintf("%s.%s", name, ext))
+			fpath := filepath.Join(layer, fmt.Sprintf("%s.%s", name, ext))
 			if _, err := os.Stat(fpath); err == nil {
 				files = append(files, fpath)
 			}

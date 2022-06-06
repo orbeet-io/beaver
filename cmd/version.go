@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-
-	"orus.io/cloudcrane/beaver/lib"
 )
 
 // VersionCmd is the "version" command
@@ -11,7 +9,7 @@ type VersionCmd struct{}
 
 // Execute the 'version' commands
 func (cmd *VersionCmd) Execute([]string) error {
-	fmt.Printf("Beaver %q\n", beaver.GetVersion())
+	fmt.Printf("Beaver %q\n", Version)
 	return nil
 }
 

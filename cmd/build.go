@@ -13,7 +13,7 @@ type BuildCmd struct {
 		Keep   bool `short:"k" long:"keep" descriptions:"Keep the temporary files"`
 	}
 	PositionnalArgs struct {
-		Namespace string `required:"yes" positional-arg-name:"namespace"`
+		DirName string `required:"yes" positional-arg-name:"directory"`
 	} `positional-args:"yes"`
 }
 
@@ -27,9 +27,9 @@ func NewBuildCmd() *BuildCmd {
 
 // Execute ...
 func (cmd *BuildCmd) Execute([]string) error {
-	Logger.Info().Str("namespace", cmd.PositionnalArgs.Namespace).Msg("starting beaver")
+	Logger.Info().Str("directory", cmd.PositionnalArgs.DirName).Msg("starting beaver")
 
-	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.Namespace, cmd.Args.DryRun)
+	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.DirName, cmd.Args.DryRun)
 
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	if err != nil {
