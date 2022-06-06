@@ -13,7 +13,6 @@ import (
 
 var (
 	fixtures       = "fixtures/f1"
-	secondFixtures = "fixtures/f2"
 )
 
 func TestConfig(t *testing.T) {
