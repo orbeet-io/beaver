@@ -207,22 +207,42 @@ type CmdSpec struct {
 
 type Ytt []string
 
-func (y Ytt) BuildArgs(layers, compiled []string) []string {
+func (c CmdConfig) PrepareYttArgs(tmpDir string, layers, compiled []string) ([]string, error) {
+	var paths []string
+	variables := c.prepareVariables(c.Spec.Variables)
+
+	for _, layer := range layers {
+		for _, ext := range []string{"", ".yaml", ".yml"} {
+			entry := fmt.Sprintf("ytt%s", ext)
+			entryPath := filepath.Join(layer, entry)
+
+			if stat, err := os.Stat(entryPath); !os.IsNotExist(err) {
+				if !stat.IsDir() {
+					hydratedPaths, err := hydrateFiles(tmpDir, variables, []string{entryPath})
+					if err != nil {
+						return nil, fmt.Errorf("Failed to hydrate %s: %w", entryPath, err)
+					}
+					entryPath = hydratedPaths[0]
+				}
+				paths = append(paths, entryPath)
+			}
+		}
+	}
+
+	args := c.BuildYttArgs(paths, compiled)
+
+	return args, nil
+}
+
+func (c CmdConfig) BuildYttArgs(paths, compiled []string) []string {
 	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
 	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 	var args []string
 	for _, c := range compiled {
 		args = append(args, "-f", c, fmt.Sprintf("--file-mark=%s:type=yaml-plain", filepath.Base(c)))
 	}
-	for _, layer := range layers {
-		for _, ext := range []string{"", ".yaml", ".yml"} {
-			entry := fmt.Sprintf("ytt%s", ext)
-			entryPath := filepath.Join(layer, entry)
-
-			if _, err := os.Stat(entryPath); !os.IsNotExist(err) {
-				args = append(args, "-f", entryPath)
-			}
-		}
+	for _, path := range paths {
+		args = append(args, "-f", path)
 	}
 	return args
 }

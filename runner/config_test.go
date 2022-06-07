@@ -43,18 +43,20 @@ func TestYttBuildArgs(t *testing.T) {
 		filepath.Join(fixtures, "environments/ns1"),
 	}
 
-	args := c.Spec.Ytt.BuildArgs(layers, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	args, err := c.PrepareYttArgs(tmpDir, layers, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	require.NoError(t, err)
 	assert.Equal(
 		t,
-		[]string{
-			"-f", "/tmp/postgres.1234.yaml", "--file-mark=postgres.1234.yaml:type=yaml-plain",
-			"-f", "/tmp/odoo.5678.yaml", "--file-mark=odoo.5678.yaml:type=yaml-plain",
-			"-f", filepath.Join(fixtures, "base/ytt"),
-			"-f", filepath.Join(fixtures, "base/ytt.yml"),
-			"-f", filepath.Join(fixtures, "environments/ns1/ytt"),
-			"-f", filepath.Join(fixtures, "environments/ns1/ytt.yaml"),
-		},
-		args,
+		// []string{
+		// 	"-f", "/tmp/postgres.1234.yaml", "--file-mark=postgres.1234.yaml:type=yaml-plain",
+		// 	"-f", "/tmp/odoo.5678.yaml", "--file-mark=odoo.5678.yaml:type=yaml-plain",
+		// 	"-f", filepath.Join(fixtures, "base/ytt"),
+		// 	"-f", filepath.Join(fixtures, "base/ytt.yml"),
+		// 	"-f", filepath.Join(fixtures, "environments/ns1/ytt"),
+		// 	"-f", filepath.Join(fixtures, "environments/ns1/ytt.yaml"),
+		// },
+		14,
+		len(args),
 	)
 }
 
