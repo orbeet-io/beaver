@@ -34,7 +34,7 @@ type Create struct {
 	Args []Arg  `mapstructure:"args"`
 }
 
-func (k CmdCreate) BuildArgs(namespace string, args []Arg) []string {
+func (k CmdCreateKey) BuildArgs(namespace string, args []Arg) []string {
 	output := []string{
 		"-n", namespace,
 		"create",
@@ -63,6 +63,22 @@ type Config struct {
 	APIVersion string `mapstructure:"apiVersion"`
 	Kind       string `mapstructure:"kind"`
 	Spec       Spec   `mapstructure:"spec"`
+	Dir        string // the directory in which we found the config file
+}
+
+// Absolutize makes all chart paths absolute
+func (c *Config) Absolutize(dir string) error {
+	for name, chart := range c.Spec.Charts {
+		resolvedChartPath := filepath.Join(dir, chart.Path)
+		absChartPath, err := filepath.Abs(resolvedChartPath)
+		if err != nil {
+			return fmt.Errorf("failed to find abs() for %s: %w", resolvedChartPath, err)
+		}
+
+		chart.Path = absChartPath
+		c.Spec.Charts[name] = chart
+	}
+	return nil
 }
 
 // NewConfig returns a *Config
@@ -88,7 +104,7 @@ func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool)
 	cmdConfig.RootDir = rootDir
 	cmdConfig.Layers = append(cmdConfig.Layers, configDir)
 	cmdConfig.Spec.Charts = make(map[string]CmdChart)
-	cmdConfig.Spec.Creates = make(map[CmdCreate][]Arg)
+	cmdConfig.Spec.Creates = make(map[CmdCreateKey]CmdCreate)
 	cmdConfig.Namespace = ""
 	cmdConfig.Logger = logger
 	return cmdConfig
@@ -114,6 +130,10 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		config, err := c.newConfigFromDir(dir)
 		if err != nil {
 			return fmt.Errorf("failed to create config from %s: %w", dir, err)
+		}
+		config.Dir = dir
+		if err := config.Absolutize(dir); err != nil {
+			return fmt.Errorf("failed to absolutize config from dir: %s, %w", dir, err)
 		}
 		// first config dir must return a real config...
 		// others can be skipped
@@ -146,9 +166,7 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		configLayers[i], configLayers[j] = configLayers[j], configLayers[i]
 	}
 
-	fmt.Printf("%+v\n", configLayers)
 	for _, config := range configLayers {
-		fmt.Printf("%+v\n", config)
 		c.Namespace = config.Spec.NameSpace
 		c.MergeVariables(config)
 
@@ -157,8 +175,11 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		}
 
 		for _, k := range config.Spec.Creates {
-			cmdCreate := CmdCreate{Type: k.Type, Name: k.Name}
-			c.Spec.Creates[cmdCreate] = k.Args
+			cmdCreate := CmdCreateKey{Type: k.Type, Name: k.Name}
+			c.Spec.Creates[cmdCreate] = CmdCreate{
+				Dir:  config.Dir,
+				Args: k.Args,
+			}
 		}
 	}
 
@@ -184,9 +205,14 @@ func (c *CmdConfig) newConfigFromDir(dir string) (*Config, error) {
 	return cfg, nil
 }
 
-type CmdCreate struct {
+type CmdCreateKey struct {
 	Type string `mapstructure:"type"`
 	Name string `mapstructure:"name"`
+}
+
+type CmdCreate struct {
+	Dir  string
+	Args []Arg
 }
 
 type CmdConfig struct {
@@ -202,7 +228,7 @@ type CmdSpec struct {
 	Variables []Variable
 	Charts    CmdCharts
 	Ytt       Ytt
-	Creates   map[CmdCreate][]Arg
+	Creates   map[CmdCreateKey]CmdCreate
 }
 
 type Ytt []string
@@ -220,7 +246,7 @@ func (c CmdConfig) PrepareYttArgs(tmpDir string, layers, compiled []string) ([]s
 				if !stat.IsDir() {
 					hydratedPaths, err := hydrateFiles(tmpDir, variables, []string{entryPath})
 					if err != nil {
-						return nil, fmt.Errorf("Failed to hydrate %s: %w", entryPath, err)
+						return nil, fmt.Errorf("failed to hydrate %s: %w", entryPath, err)
 					}
 					entryPath = hydratedPaths[0]
 				}

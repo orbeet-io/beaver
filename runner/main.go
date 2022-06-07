@@ -52,10 +52,13 @@ func (r *Runner) Build(tmpDir string) error {
 			return fmt.Errorf("unsupported chart %s type: %q", chart.Path, chart.Type)
 		}
 	}
-	for create, args := range r.config.Spec.Creates {
-		strArgs := create.BuildArgs(r.config.Namespace, args)
-		name := fmt.Sprintf("%s_%s", create.Type, create.Name)
-		cmds[name] = cmd.NewCmd(kubectlCmd, strArgs...)
+
+	for key, create := range r.config.Spec.Creates {
+		strArgs := key.BuildArgs(r.config.Namespace, create.Args)
+		name := fmt.Sprintf("%s_%s", key.Type, key.Name)
+		c := cmd.NewCmd(kubectlCmd, strArgs...)
+		c.Dir = create.Dir
+		cmds[name] = c
 	}
 
 	// run commands or print them
@@ -96,7 +99,7 @@ func (r *Runner) Build(tmpDir string) error {
 	}
 
 	// create ytt additional command
-	args , err := r.config.PrepareYttArgs(tmpDir, r.config.Layers, compiled)
+	args, err := r.config.PrepareYttArgs(tmpDir, r.config.Layers, compiled)
 	if err != nil {
 		return fmt.Errorf("cannot prepare ytt args: %w", err)
 	}

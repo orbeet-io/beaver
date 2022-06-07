@@ -9,13 +9,13 @@ spec:
   charts:
     postgres:
       type: helm
-      path: vendor/helm/postgresql
+      path: ../vendor/helm/postgresql
     odoo:
       type: ytt
-      path: vendor/ytt/odoo
+      path: ../vendor/ytt/odoo
   create:
   - type: configmap
     name: xbus-pipelines
     args:
     - flag: --from-file
-      value: base/pipelines
+      value: pipelines

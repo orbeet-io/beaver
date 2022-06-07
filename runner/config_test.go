@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	fixtures       = "fixtures/f1"
+	fixtures = "fixtures/f1"
 )
 
 func TestConfig(t *testing.T) {
@@ -21,8 +21,8 @@ func TestConfig(t *testing.T) {
 	// first config.spec.variables entry name should be VAULT_KV in our test file
 	assert.Equal(t, "VAULT_KV", config.Spec.Variables[0].Name)
 	assert.Equal(t, "orus.io", config.Spec.Variables[0].Value)
-	assert.Equal(t, "vendor/helm/postgresql", config.Spec.Charts["postgres"].Path)
-	assert.Equal(t, "vendor/ytt/odoo", config.Spec.Charts["odoo"].Path)
+	assert.Equal(t, "../vendor/helm/postgresql", config.Spec.Charts["postgres"].Path)
+	assert.Equal(t, "../vendor/ytt/odoo", config.Spec.Charts["odoo"].Path)
 }
 
 func TestYttBuildArgs(t *testing.T) {
@@ -73,8 +73,18 @@ func TestCreateConfig(t *testing.T) {
 	}()
 	require.NoError(t, c.Initialize(tmpDir))
 	require.Equal(t, 1, len(c.Spec.Creates))
-	for k, a := range c.Spec.Creates {
-		args := k.BuildArgs(c.Namespace, a)
+
+	assert.True(t, filepath.IsAbs(c.Spec.Charts["postgres"].Path))
+	crKey := runner.CmdCreateKey{
+		Type: "configmap",
+		Name: "xbus-pipelines",
+	}
+	cr, ok := c.Spec.Creates[crKey]
+	assert.True(t, ok)
+	require.Equal(t, 1, len(cr.Args))
+
+	for k, create := range c.Spec.Creates {
+		args := k.BuildArgs(c.Namespace, create.Args)
 		assert.Equal(
 			t,
 			[]string{
