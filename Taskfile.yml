@@ -29,7 +29,7 @@ tasks:
       - mkdir -p build
       - |
         go build \
-          -ldflags "-X orus.io/cloudcrane/beaver/lib.version={{ .VERSION }}" \
+          -ldflags "-X orus.io/orus-io/beaver/lib.version={{ .VERSION }}" \
           -o {{.OUTPUT}} \
           main.go
     generates:

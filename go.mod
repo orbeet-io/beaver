@@ -1,4 +1,4 @@
-module orus.io/cloudcrane/beaver
+module orus.io/orus-io/beaver
 
 go 1.16
 

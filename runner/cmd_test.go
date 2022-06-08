@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"orus.io/cloudcrane/beaver/runner"
-	"orus.io/cloudcrane/beaver/testutils"
+	"orus.io/orus-io/beaver/runner"
+	"orus.io/orus-io/beaver/testutils"
 )
 
 func TestRunCMD(t *testing.T) {

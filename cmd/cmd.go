@@ -8,7 +8,7 @@ import (
 	"github.com/orus-io/go-flags"
 	"github.com/rs/zerolog"
 
-	beaver "orus.io/cloudcrane/beaver/lib"
+	beaver "orus.io/orus-io/beaver/lib"
 )
 
 var (

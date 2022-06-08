@@ -1,8 +1,9 @@
 package main
 
 import (
-	"orus.io/cloudcrane/beaver/cmd"
 	"os"
+
+	"orus.io/orus-io/beaver/cmd"
 )
 
 func main() {

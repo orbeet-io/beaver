@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"orus.io/cloudcrane/beaver/runner"
+	"orus.io/orus-io/beaver/runner"
 )
 
 type BuildCmd struct {
