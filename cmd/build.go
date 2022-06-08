@@ -44,7 +44,7 @@ func (cmd *BuildCmd) Execute([]string) error {
 	}
 
 	if err := config.Initialize(tmpDir); err != nil {
-		Logger.Err(err).Msg("failed to prepare config")
+		return fmt.Errorf("failed to prepare config: %w", err)
 	}
 	r := runner.NewRunner(config)
 	return r.Build(tmpDir)
