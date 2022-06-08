@@ -10,7 +10,7 @@
 version: '3'
 
 vars:
-  VERSION: 1.0.0
+  VERSION: 2.0.0
   EXE: beaver{{exeExt}}
   OUTPUT: "build/{{.EXE}}"
   GOLANGCI_LINT_VERSION: v1.44.0
