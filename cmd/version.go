@@ -9,7 +9,7 @@ type VersionCmd struct{}
 
 // Execute the 'version' commands
 func (cmd *VersionCmd) Execute([]string) error {
-	fmt.Printf("Beaver %q\n", Version)
+	fmt.Printf("Beaver %s \nBuild Date: %s\nCommit SHA: %s\n", Version, BuildDate, CommitSha)
 	return nil
 }
 

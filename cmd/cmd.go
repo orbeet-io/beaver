@@ -12,7 +12,9 @@ import (
 )
 
 var (
-	Version = beaver.GetVersion()
+	Version   = beaver.GetVersion()
+	CommitSha = beaver.GetCommitSha()
+	BuildDate = beaver.GetBuildDate()
 )
 
 var (
