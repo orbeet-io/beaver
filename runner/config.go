@@ -49,26 +49,19 @@ func (k CmdCreateKey) BuildArgs(namespace string, args []Arg) []string {
 	return output
 }
 
-// Spec ...
-type Spec struct {
+// Config ...
+type Config struct {
 	Inherit   string           `mapstructure:"inherit"`
 	NameSpace string           `mapstructure:"namespace"`
 	Variables []Variable       `mapstructure:"variables"`
 	Charts    map[string]Chart `mapstructure:"charts"`
 	Creates   []Create         `mapstructure:"create"`
-}
-
-// Config is the configuration we get after parsing our beaver.yml file
-type Config struct {
-	APIVersion string `mapstructure:"apiVersion"`
-	Kind       string `mapstructure:"kind"`
-	Spec       Spec   `mapstructure:"spec"`
-	Dir        string // the directory in which we found the config file
+	Dir       string           // the directory in which we found the config file
 }
 
 // Absolutize makes all chart paths absolute
 func (c *Config) Absolutize(dir string) error {
-	for name, chart := range c.Spec.Charts {
+	for name, chart := range c.Charts {
 		resolvedChartPath := filepath.Join(dir, chart.Path)
 		absChartPath, err := filepath.Abs(resolvedChartPath)
 		if err != nil {
@@ -76,7 +69,7 @@ func (c *Config) Absolutize(dir string) error {
 		}
 
 		chart.Path = absChartPath
-		c.Spec.Charts[name] = chart
+		c.Charts[name] = chart
 	}
 	return nil
 }
@@ -149,10 +142,10 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		c.Layers = append(c.Layers, absDir)
 		configLayers = append(configLayers, config)
 
-		if config == nil || config.Spec.Inherit == "" {
+		if config == nil || config.Inherit == "" {
 			weNeedToGoDeeper = false
 		} else {
-			resolvedDir := filepath.Join(absDir, config.Spec.Inherit)
+			resolvedDir := filepath.Join(absDir, config.Inherit)
 			newDir, err := filepath.Abs(resolvedDir)
 			if err != nil {
 				return fmt.Errorf("failed to find abs() for %s: %w", resolvedDir, err)
@@ -167,14 +160,14 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 	}
 
 	for _, config := range configLayers {
-		c.Namespace = config.Spec.NameSpace
+		c.Namespace = config.NameSpace
 		c.MergeVariables(config)
 
-		for k, chart := range config.Spec.Charts {
+		for k, chart := range config.Charts {
 			c.Spec.Charts[k] = cmdChartFromChart(chart)
 		}
 
-		for _, k := range config.Spec.Creates {
+		for _, k := range config.Creates {
 			cmdCreate := CmdCreateKey{Type: k.Type, Name: k.Name}
 			c.Spec.Creates[cmdCreate] = CmdCreate{
 				Dir:  config.Dir,
@@ -430,7 +423,7 @@ func (c *CmdConfig) hydrateFiles(dirName string) error {
 // variables into the current cmdconfig by replacing old ones
 // and adding the new ones
 func (c *CmdConfig) MergeVariables(other *Config) {
-	for _, variable := range other.Spec.Variables {
+	for _, variable := range other.Variables {
 		c.overlayVariable(variable)
 	}
 }

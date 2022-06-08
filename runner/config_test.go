@@ -19,10 +19,10 @@ func TestConfig(t *testing.T) {
 	config, err := runner.NewConfig(filepath.Join(fixtures, "base"))
 	require.NoError(t, err)
 	// first config.spec.variables entry name should be VAULT_KV in our test file
-	assert.Equal(t, "VAULT_KV", config.Spec.Variables[0].Name)
-	assert.Equal(t, "orus.io", config.Spec.Variables[0].Value)
-	assert.Equal(t, "../vendor/helm/postgresql", config.Spec.Charts["postgres"].Path)
-	assert.Equal(t, "../vendor/ytt/odoo", config.Spec.Charts["odoo"].Path)
+	assert.Equal(t, "VAULT_KV", config.Variables[0].Name)
+	assert.Equal(t, "orus.io", config.Variables[0].Value)
+	assert.Equal(t, "../vendor/helm/postgresql", config.Charts["postgres"].Path)
+	assert.Equal(t, "../vendor/ytt/odoo", config.Charts["odoo"].Path)
 }
 
 func TestYttBuildArgs(t *testing.T) {
