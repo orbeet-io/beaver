@@ -56,10 +56,12 @@ upload:
     key: tooling
     paths:
       - build
+  rules:
+    - if: '$CI_COMMIT_TAG'
   script:
     - |
       OUTPUT_FILE=$(mktemp)
-      HTTP_CODE=$(curl --silent --output $OUTPUT_FILE --write-out "%{http_code}" --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file build/beaver "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/beaver/2.0.0/beaver")
+      HTTP_CODE=$(curl --silent --output $OUTPUT_FILE --write-out "%{http_code}" --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file build/beaver "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/beaver/${CI_COMMIT_TAG}/beaver")
       echo "return $HTTP_CODE"
       cat $OUTPUT_FILE
       if [[ ${HTTP_CODE} -lt 200 || ${HTTP_CODE} -gt 299 ]] ; then
