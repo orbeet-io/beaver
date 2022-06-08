@@ -118,8 +118,20 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		return fmt.Errorf("failed to find abs() for %s: %w", resolvedConfigDir, err)
 	}
 	dir := absConfigDir
+	dirMap := make(map[string]interface{})
 
 	for weNeedToGoDeeper {
+
+		// guard against recursive inherit loops
+		_, present := dirMap[dir]
+		if present {
+			var dirList []string
+			for k := range dirMap {
+				dirList = append(dirList, k)
+			}
+			return fmt.Errorf("recursive inherit loop detected: dirs %s->%s", strings.Join(dirList, "->"), dir)
+		}
+
 		config, err := c.newConfigFromDir(dir)
 		if err != nil {
 			return fmt.Errorf("failed to create config from %s: %w", dir, err)
