@@ -136,6 +136,13 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create config from %s: %w", dir, err)
 		}
+		if config == nil {
+			if len(c.Layers) == 1 {
+				return fmt.Errorf("Beaver file not found in directory: %s", dir)
+			} else {
+				continue
+			}
+		}
 		config.Dir = dir
 		if err := config.Absolutize(dir); err != nil {
 			return fmt.Errorf("failed to absolutize config from dir: %s, %w", dir, err)
