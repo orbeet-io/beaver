@@ -3,7 +3,7 @@
 # env GO111MODULE=on go get -u github.com/go-task/task/v3/cmd/task
 # if you want to use it in a CI build script chain you can just use
 # this
-# GO111MODULE=on go get -u github.com/go-task/task/v3/cmd/task
+# go install github.com/go-task/task/v3/cmd/task@latest
 
 ---
 
