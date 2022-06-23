@@ -9,6 +9,7 @@ import (
 
 // NewTestLogger creates a TestLogger
 func NewTestLogger(tb testing.TB) *TestLogger {
+	tb.Helper()
 	return &TestLogger{tb}
 }
 
@@ -40,6 +41,7 @@ func (tl *TestLogger) Write(m []byte) (int, error) {
 // SetTB changes the current TB, and returns a function to get back to the
 // previous one
 func (tl *TestLogger) SetTB(tb testing.TB) func() {
+	tb.Helper()
 	otb := tl.tb
 	tl.tb = tb
 	return func() {
@@ -49,5 +51,6 @@ func (tl *TestLogger) SetTB(tb testing.TB) func() {
 
 // GetLogger returns a test Logger
 func GetLogger(tb testing.TB) zerolog.Logger {
+	tb.Helper()
 	return NewTestLogger(tb).Logger()
 }

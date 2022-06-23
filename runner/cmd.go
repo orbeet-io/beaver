@@ -6,11 +6,13 @@ import (
 	"github.com/go-cmd/cmd"
 )
 
-func RunCMD(c *cmd.Cmd) (err error, stdout, stderr []string) {
+// RunCMD runs the given cmd and returns its stdout, stderr and
+// an eventual error
+func RunCMD(c *cmd.Cmd) (stdout, stderr []string, err error) {
 	statusChan := c.Start()
 	status := <-statusChan
 	if status.Error != nil || status.Exit > 0 {
-		return fmt.Errorf("cannot execute command: %w", err), status.Stdout, status.Stderr
+		return status.Stdout, status.Stderr, fmt.Errorf("cannot execute command: %w", err)
 	}
 	stdout = status.Stdout
 	stderr = status.Stderr

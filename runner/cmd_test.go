@@ -13,13 +13,14 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"orus.io/orus-io/beaver/runner"
 	"orus.io/orus-io/beaver/testutils"
 )
 
 func TestRunCMD(t *testing.T) {
 	c := cmd.NewCmd("echo", "p00f")
-	err, stdout, stderr := runner.RunCMD(c)
+	stdout, stderr, err := runner.RunCMD(c)
 	require.NoError(t, err)
 	for _, out := range stdout {
 		assert.Equal(t, "p00f", out)

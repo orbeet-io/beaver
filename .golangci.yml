@@ -1,0 +1,123 @@
+run:
+  timeout: 2m
+  sort-results: true
+linters:
+  disable-all: true
+  enable:
+    # enable by default linters
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+
+    # extra linters
+    - asciicheck  # Simple linter to check that your code does not contain non-ASCII identifiers
+    - bidichk  # Checks for dangerous unicode character sequences
+    - bodyclose  # checks whether HTTP response body is closed successfully
+    # - containedctx  # containedctx is a linter that detects struct contained context.Context field	style		1.44.0
+    - contextcheck  # check the function whether use a non-inherited context	bugs		v1.43.0
+    # - cyclop  # checks function and package cyclomatic complexity	complexity		v1.37.0
+    # - decorder  # check declaration order and count of types, constants, variables and functions	format, style		v1.44.0
+    # - depguard  # Go linter that checks if package imports are in a list of acceptable packages	style, import, module		v1.4.0
+    # - dogsled  # Checks assignments with too many blank identifiers (e.g. x, , , _, := f())	style		v1.19.0
+    # - dupl  # Tool for code clone detection	style		v1.0.0
+    # - durationcheck  # check for two durations multiplied together	bugs		v1.37.0
+    - errchkjson  # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occations, where the check for the returned error can be omitted.	bugs		1.44.0
+    # - errname  # Checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error.	style		v1.42.0
+    - errorlint  # errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.	bugs, error		v1.32.0
+    # - exhaustive  # check exhaustiveness of enum switch statements	bugs		v1.28.0
+    # - exhaustivestruct  # Checks if all struct's fields are initialized	style, test		v1.32.0
+    # - exportloopref  # checks for pointers to enclosing loop variables	bugs		v1.28.0
+    # - forbidigo  # Forbids identifiers	style		v1.34.0
+    # - forcetypeassert  # finds forced type assertions	style		v1.38.0
+    # - funlen  # Tool for detection of long functions	complexity		v1.18.0
+    - gci  # Gci control golang package import order and make it always deterministic.	format, import	✔	v1.30.0
+    # - gochecknoglobals  # check that no global variables exist
+    #
+    #   This analyzer checks for global variables and errors on any found.
+    #
+    #   A global variable is a variable declared in package scope and that can be read
+    #   and written to by any function within the package. Global variables can cause
+    #   side effects which are difficult to keep track of. A code in one function may
+    #   change the variables state while another unrelated chunk of code may be
+    #   effected by it.  # style		v1.12.0
+    # - gochecknoinits  # Checks that no init functions are present in Go code	style		v1.12.0
+    # - gocognit  # Computes and checks the cognitive complexity of functions	complexity		v1.20.0
+    # - goconst  # Finds repeated strings that could be replaced by a constant	style		v1.0.0
+    - gocritic  # Provides diagnostics that check for bugs, performance and style issues.
+    # - Extensible without recompilation through dynamic rules.
+    # - Dynamic rules are written declaratively with AST patterns, filters, report message and optional suggestion.  # style, metalinter		v1.12.0
+    # - gocyclo  # Computes and checks the cyclomatic complexity of functions	complexity		v1.0.0
+    # - godot  # Check if comments end in a period	style, comment	✔	v1.25.0
+    # - godox  # Tool for detection of FIXME, TODO and other comment keywords	style, comment		v1.19.0
+    # - goerr113  # Golang linter to check the errors handling expressions	style, error		v1.26.0
+    # - gofmt  # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification	format	✔	v1.0.0
+    # - gofumpt  # Gofumpt checks whether code was gofumpt-ed.	format	✔	v1.28.0
+    # - goheader  # Checks is file header matches to pattern	style		v1.28.0
+    # - goimports  # In addition to fixing imports, goimports also formats your code in the same style as gofmt.	format, import	✔	v1.20.0
+    # - golint ⚠  # The repository of the linter has been archived by the owner. Replaced by revive.	style		v1.0.0
+    # - gomnd  # An analyzer to detect magic numbers.	style		v1.22.0
+    # - gomoddirectives  # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod.	style, module		v1.39.0
+    # - gomodguard  # Allow and block list linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations.	style, import, module		v1.25.0
+    # - goprintffuncname  # Checks that printf-like functions are named with f at the end	style		v1.23.0
+    - gosec  # Inspects source code for security problems	bugs		v1.0.0
+    - ifshort  # Checks that your code uses short syntax for if-statements whenever possible	style		v1.36.0
+    # - importas  # Enforces consistent import aliases	style		v1.38.0
+    # - interfacer ⚠  # The repository of the linter has been archived by the owner.	style		v1.0.0
+    # - ireturn  # Accept Interfaces, Return Concrete Types	style		v1.43.0
+    # - lll  # Reports long lines	style		v1.8.0
+    # - maintidx  # maintidx measures the maintainability index of each function.	complexity		v1.44.0
+    # - makezero  # Finds slice declarations with non-zero initial length	style, bugs		v1.34.0
+    # - maligned ⚠  # The repository of the linter has been archived by the owner. Replaced by govet 'fieldalignment'.	performance		v1.0.0
+    - misspell  # Finds commonly misspelled English words in comments	style, comment	✔	v1.8.0
+    # - nakedret  # Finds naked returns in functions greater than a specified function length	style		v1.19.0
+    # - nestif  # Reports deeply nested if statements	complexity		v1.25.0
+    # - nilerr  # Finds the code that returns nil even if it checks that the error is not nil.	bugs		v1.38.0
+    # - nilnil  # Checks that there is no simultaneous return of nil error and an invalid value.	style		v1.43.0
+    # - nlreturn  # nlreturn checks for a new line before return and branch statements to increase code clarity	style		v1.30.0
+    # - noctx  # noctx finds sending http request without context.Context	performance, bugs		v1.28.0
+    # - nolintlint  # Reports ill-formed or insufficient nolint directives	style		v1.26.0
+    # - paralleltest  # paralleltest detects missing usage of t.Parallel() method in your Go test	style, test		v1.33.0
+    # - prealloc  # Finds slice declarations that could potentially be preallocated	performance		v1.19.0
+    # - predeclared  # find code that shadows one of Go's predeclared identifiers	style		v1.35.0
+    # - promlinter  # Check Prometheus metrics naming via promlint	style		v1.40.0
+    - revive  # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.	style, metalinter		v1.37.0
+    - rowserrcheck  # checks whether Err of rows is checked successfully	bugs, sql		v1.23.0
+    # - scopelint ⚠  # The repository of the linter has been deprecated by the owner. Replaced by exportloopref.	bugs		v1.12.0
+    # - sqlclosecheck  # Checks that sql.Rows and sql.Stmt are closed.	bugs, sql		v1.28.0
+    # - stylecheck  # Stylecheck is a replacement for golint	style		v1.20.0
+    # - tagliatelle  # Checks the struct tags.	style		v1.40.0
+    # - tenv  # tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17	style		v1.43.0
+    # - testpackage  # linter that makes you use a separate _test package	style, test		v1.25.0
+    - thelper  # thelper detects golang test helpers without t.Helper() call and checks the consistency of test helpers	style		v1.34.0
+    # - tparallel  # tparallel detects inappropriate usage of t.Parallel() method in your Go test codes	style, test		v1.32.0
+    - unconvert  # Remove unnecessary type conversions	style		v1.0.0
+    # - unparam  # Reports unused function parameters	unused		v1.9.0
+    # - varnamelen  # checks that the length of a variable's name matches its scope	style		v1.43.0
+    # - wastedassign  # wastedassign finds wasted assignment statements.	style		v1.38.0
+    - whitespace  # Tool for detection of leading and trailing whitespace	style	✔	v1.19.0
+    # - wrapcheck  # Checks that errors returned from external packages are wrapped	style, error		v1.32.0
+    # - wsl  # Whitespace Linter - Forces you to use empty lines!	style		v1.20.0
+
+linters-settings:
+  gci:
+    local-prefixes: "orus.io/orus-io/beaver"
+  golint:
+    # minimal confidence for issues, default is 0.8
+    min-confidence: 0.5
+  varnamelen:
+    ignore-names:
+      - db
+      - msg
+    ignore-decls:
+      - t testing.T
+      - i int
+issues:
+  exclude:
+    - SA5008  # duplicate struct tag (staticcheck)

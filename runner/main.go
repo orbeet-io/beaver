@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,9 +33,9 @@ func NewRunner(cfg *CmdConfig) *Runner {
 // Build is in charge of applying commands based on the config data
 func (r *Runner) Build(tmpDir string) error {
 	// TODO: find command full path
-	var yttCmd string = "ytt"
-	var helmCmd string = "helm"
-	var kubectlCmd string = "kubectl"
+	var yttCmd = "ytt"
+	var helmCmd = "helm"
+	var kubectlCmd = "kubectl"
 	// create helm commands
 	// create ytt chart commands
 	cmds := make(map[string]*cmd.Cmd)
@@ -72,7 +73,7 @@ func (r *Runner) Build(tmpDir string) error {
 		}
 	} else {
 		for name, cmd := range cmds {
-			err, stdOut, stdErr := RunCMD(cmd)
+			stdOut, stdErr, err := RunCMD(cmd)
 			if err != nil {
 				r.config.Logger.Err(err).
 					Str("command", cmd.Name).
@@ -86,15 +87,22 @@ func (r *Runner) Build(tmpDir string) error {
 				fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 				return fmt.Errorf("failed to run command: %w", err)
 			}
-			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name)); err != nil {
+			tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
+			if err != nil {
 				return fmt.Errorf("cannot create compiled file: %w", err)
-			} else {
-				defer tmpFile.Close()
-				if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
-					return fmt.Errorf("cannot write compiled file: %w", err)
-				}
-				compiled = append(compiled, tmpFile.Name())
 			}
+			defer func() {
+				if err := tmpFile.Close(); err != nil {
+					r.config.Logger.
+						Err(err).
+						Str("temp file", tmpFile.Name()).
+						Msg("failed to close temp file")
+				}
+			}()
+			if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
+				return fmt.Errorf("cannot write compiled file: %w", err)
+			}
+			compiled = append(compiled, tmpFile.Name())
 		}
 	}
 
@@ -112,7 +120,7 @@ func (r *Runner) Build(tmpDir string) error {
 			Msg("would run command")
 		return nil
 	}
-	err, stdOut, stdErr := RunCMD(yttExtraCmd)
+	stdOut, stdErr, err := RunCMD(yttExtraCmd)
 	if err != nil {
 		r.config.Logger.Err(err).
 			Str("command", yttExtraCmd.Name).
@@ -126,29 +134,29 @@ func (r *Runner) Build(tmpDir string) error {
 		fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 		return fmt.Errorf("failed to run command: %w", err)
 	}
-	if tmpFile, err := ioutil.TempFile(tmpDir, "fully-compiled-"); err != nil {
+	tmpFile, err := ioutil.TempFile(tmpDir, "fully-compiled-")
+	if err != nil {
 		return fmt.Errorf("cannot create fully compiled file: %w", err)
-	} else {
-		defer func() {
-			if err := tmpFile.Close(); err != nil {
-				r.config.Logger.Err(err).
-					Str("tmp file", tmpFile.Name()).
-					Msg("failed to close temp file")
-			}
-		}()
-		if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
-			return fmt.Errorf("cannot write full compiled file: %w", err)
+	}
+	defer func() {
+		if err := tmpFile.Close(); err != nil {
+			r.config.Logger.Err(err).
+				Str("tmp file", tmpFile.Name()).
+				Msg("failed to close temp file")
 		}
-		outputDir := filepath.Join(r.config.RootDir, "build", r.config.Namespace)
-		if err := os.RemoveAll(outputDir); err != nil {
-			return fmt.Errorf("cannot cleanup output directory: %w", err)
-		}
-		if err := os.MkdirAll(outputDir, defaultDirMod); err != nil {
-			return fmt.Errorf("cannot create output directory: %w", err)
-		}
-		if _, err := YamlSplit(outputDir, tmpFile.Name()); err != nil {
-			return fmt.Errorf("cannot split full compiled file: %w", err)
-		}
+	}()
+	if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
+		return fmt.Errorf("cannot write full compiled file: %w", err)
+	}
+	outputDir := filepath.Join(r.config.RootDir, "build", r.config.Namespace)
+	if err := os.RemoveAll(outputDir); err != nil {
+		return fmt.Errorf("cannot cleanup output directory: %w", err)
+	}
+	if err := os.MkdirAll(outputDir, defaultDirMod); err != nil {
+		return fmt.Errorf("cannot create output directory: %w", err)
+	}
+	if _, err := YamlSplit(outputDir, tmpFile.Name()); err != nil {
+		return fmt.Errorf("cannot split full compiled file: %w", err)
 	}
 
 	return nil
@@ -181,21 +189,21 @@ func YamlSplit(buildDir, inputFile string) ([]string, error) {
 		if !ok {
 			return nil, fmt.Errorf("fail to type assert metadata.name from: %+v", resource)
 		}
-		filename := fmt.Sprintf("%s.%s.%s.yaml", kind, strings.Replace(apiVersion, "/", "_", -1), name)
+		filename := fmt.Sprintf("%s.%s.%s.yaml", kind, strings.ReplaceAll(apiVersion, "/", "_"), name)
 		fPath := filepath.Join(buildDir, filename)
 
-		if out, err := yaml.Marshal(resource); err != nil {
+		out, err := yaml.Marshal(resource)
+		if err != nil {
 			return nil, fmt.Errorf("cannot marshal resource: %w", err)
-		} else {
-			if err := os.MkdirAll(buildDir, defaultDirMod); err != nil {
-				return nil, fmt.Errorf("cannot create build directory: %w", err)
-			}
-			content := append([]byte("---\n"), out[:]...)
-			if err := os.WriteFile(fPath, content, defaultFileMod); err != nil {
-				return nil, fmt.Errorf("cannot write resource: %w", err)
-			}
-			splitted = append(splitted, fPath)
 		}
+		if err := os.MkdirAll(buildDir, defaultDirMod); err != nil {
+			return nil, fmt.Errorf("cannot create build directory: %w", err)
+		}
+		content := append([]byte("---\n"), out...)
+		if err := os.WriteFile(fPath, content, defaultFileMod); err != nil {
+			return nil, fmt.Errorf("cannot write resource: %w", err)
+		}
+		splitted = append(splitted, fPath)
 	}
 
 	return splitted, nil
@@ -208,7 +216,7 @@ func UnmarshalAllResources(in []byte, out *[]map[string]interface{}) error {
 		res := make(map[string]interface{})
 		if err := decoder.Decode(&res); err != nil {
 			// Break when there are no more documents to decode
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				return err
 			}
 			break

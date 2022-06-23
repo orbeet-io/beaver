@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"orus.io/orus-io/beaver/runner"
 	"orus.io/orus-io/beaver/testutils"
 )

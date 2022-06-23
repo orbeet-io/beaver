@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -121,7 +122,6 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 	dirMap := make(map[string]interface{})
 
 	for weNeedToGoDeeper {
-
 		// guard against recursive inherit loops
 		_, present := dirMap[dir]
 		if present {
@@ -138,10 +138,9 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		}
 		if config == nil {
 			if len(c.Layers) == 1 {
-				return fmt.Errorf("Beaver file not found in directory: %s", dir)
-			} else {
-				continue
+				return fmt.Errorf("beaver file not found in directory: %s", dir)
 			}
+			continue
 		}
 		config.Dir = dir
 		if err := config.Absolutize(dir); err != nil {
@@ -207,10 +206,8 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 
 func (c *CmdConfig) newConfigFromDir(dir string) (*Config, error) {
 	cfg, err := NewConfig(dir)
-	var cfgNotFound bool
 	if err != nil {
-		_, cfgNotFound = err.(viper.ConfigFileNotFoundError)
-		if !cfgNotFound {
+		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
 			return nil, err
 		}
 	}
@@ -404,22 +401,22 @@ func hydrateFiles(tmpDir string, variables map[string]string, paths []string) ([
 			continue
 		}
 
-		if tmpl, err := template.New(filepath.Base(path)).ParseFiles(path); err != nil {
+		tmpl, err := template.New(filepath.Base(path)).ParseFiles(path)
+		if err != nil {
 			return nil, err
-		} else {
-			ext := filepath.Ext(path)
-			if tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s-*%s", strings.TrimSuffix(filepath.Base(path), ext), ext)); err != nil {
-				return nil, fmt.Errorf("hydrateFiles failed to create tempfile: %w", err)
-			} else {
-				defer func() {
-					_ = tmpFile.Close()
-				}()
-				if err := tmpl.Execute(tmpFile, variables); err != nil {
-					return nil, fmt.Errorf("hydrateFiles failed to execute template: %w", err)
-				}
-				result = append(result, tmpFile.Name())
-			}
 		}
+		ext := filepath.Ext(path)
+		tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s-*%s", strings.TrimSuffix(filepath.Base(path), ext), ext))
+		if err != nil {
+			return nil, fmt.Errorf("hydrateFiles failed to create tempfile: %w", err)
+		}
+		defer func() {
+			_ = tmpFile.Close()
+		}()
+		if err := tmpl.Execute(tmpFile, variables); err != nil {
+			return nil, fmt.Errorf("hydrateFiles failed to execute template: %w", err)
+		}
+		result = append(result, tmpFile.Name())
 	}
 	return result, nil
 }
@@ -428,12 +425,12 @@ func (c *CmdConfig) hydrateFiles(dirName string) error {
 	variables := c.prepareVariables(c.Spec.Variables)
 
 	for key, chart := range c.Spec.Charts {
-		if paths, err := hydrateFiles(dirName, variables, chart.ValuesFileNames); err != nil {
+		paths, err := hydrateFiles(dirName, variables, chart.ValuesFileNames)
+		if err != nil {
 			return err
-		} else {
-			chart.ValuesFileNames = paths
-			c.Spec.Charts[key] = chart
 		}
+		chart.ValuesFileNames = paths
+		c.Spec.Charts[key] = chart
 	}
 	return nil
 }

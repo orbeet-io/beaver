@@ -19,9 +19,7 @@ type BuildCmd struct {
 
 // NewBuildCmd ...
 func NewBuildCmd() *BuildCmd {
-
 	cmd := BuildCmd{}
-
 	return &cmd
 }
 
