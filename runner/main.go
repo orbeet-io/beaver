@@ -19,6 +19,7 @@ var (
 	defaultDirMod  os.FileMode = 0700
 )
 
+// Runner is the struct in charge of launching commands
 type Runner struct {
 	config *CmdConfig
 }
@@ -129,7 +130,6 @@ func (r *Runner) Build(tmpDir string) error {
 			Str("stderr", strings.Join(stdErr, "\n")).
 			Msg("failed to run command")
 
-		// TODO: print error to stderr
 		// Error message must be pretty printed to end users
 		fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 		return fmt.Errorf("failed to run command: %w", err)
@@ -162,14 +162,16 @@ func (r *Runner) Build(tmpDir string) error {
 	return nil
 }
 
+// YamlSplit takes a buildDier and an inputFile.
+// it returns a list of yaml documents and an eventual error
 func YamlSplit(buildDir, inputFile string) ([]string, error) {
-	var splitted []string
+	var docs []string
 	var allResources []map[string]interface{}
 	input, err := os.ReadFile(inputFile)
 	if err != nil {
 		return nil, err
 	}
-	if err := UnmarshalAllResources(input, &allResources); err != nil {
+	if err := unmarshalAllResources(input, &allResources); err != nil {
 		return nil, err
 	}
 	for _, resource := range allResources {
@@ -203,13 +205,13 @@ func YamlSplit(buildDir, inputFile string) ([]string, error) {
 		if err := os.WriteFile(fPath, content, defaultFileMod); err != nil {
 			return nil, fmt.Errorf("cannot write resource: %w", err)
 		}
-		splitted = append(splitted, fPath)
+		docs = append(docs, fPath)
 	}
 
-	return splitted, nil
+	return docs, nil
 }
 
-func UnmarshalAllResources(in []byte, out *[]map[string]interface{}) error {
+func unmarshalAllResources(in []byte, out *[]map[string]interface{}) error {
 	r := bytes.NewReader(in)
 	decoder := yaml.NewDecoder(r)
 	for {

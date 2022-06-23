@@ -27,7 +27,7 @@ var (
 func Run() int {
 	if _, err := parser.Parse(); err != nil {
 		code := 1
-		if fe, ok := err.(*flags.Error); ok {
+		if fe, ok := err.(*flags.Error); ok { // nolint:errorlint
 			if fe.Type == flags.ErrHelp {
 				code = 0
 				// this error actually contains a help message for the user
