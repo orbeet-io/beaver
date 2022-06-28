@@ -108,10 +108,7 @@ func (r *Runner) Build(tmpDir string) error {
 	}
 
 	// create ytt additional command
-	args, err := r.config.PrepareYttArgs(tmpDir, r.config.Layers, compiled)
-	if err != nil {
-		return fmt.Errorf("cannot prepare ytt args: %w", err)
-	}
+	args := r.config.BuildYttArgs(r.config.Spec.Ytt, compiled)
 
 	yttExtraCmd := cmd.NewCmd(yttCmd, args...)
 	if r.config.DryRun {

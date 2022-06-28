@@ -39,12 +39,7 @@ func TestYttBuildArgs(t *testing.T) {
 	}()
 	require.NoError(t, c.Initialize(tmpDir))
 
-	layers := []string{
-		filepath.Join(fixtures, "base"),
-		filepath.Join(fixtures, "environments/ns1"),
-	}
-
-	args, err := c.PrepareYttArgs(tmpDir, layers, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
+	args := c.BuildYttArgs(c.Spec.Ytt, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
 	require.NoError(t, err)
 	assert.Equal(
 		t,

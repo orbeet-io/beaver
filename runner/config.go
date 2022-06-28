@@ -242,33 +242,6 @@ type CmdSpec struct {
 
 type Ytt []string
 
-func (c CmdConfig) PrepareYttArgs(tmpDir string, layers, compiled []string) ([]string, error) {
-	var paths []string
-	variables := c.prepareVariables(c.Spec.Variables)
-
-	for _, layer := range layers {
-		for _, ext := range []string{"", ".yaml", ".yml"} {
-			entry := fmt.Sprintf("ytt%s", ext)
-			entryPath := filepath.Join(layer, entry)
-
-			if stat, err := os.Stat(entryPath); !os.IsNotExist(err) {
-				if !stat.IsDir() {
-					hydratedPaths, err := hydrateFiles(tmpDir, variables, []string{entryPath})
-					if err != nil {
-						return nil, fmt.Errorf("failed to hydrate %s: %w", entryPath, err)
-					}
-					entryPath = hydratedPaths[0]
-				}
-				paths = append(paths, entryPath)
-			}
-		}
-	}
-
-	args := c.BuildYttArgs(paths, compiled)
-
-	return args, nil
-}
-
 func (c CmdConfig) BuildYttArgs(paths, compiled []string) []string {
 	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
 	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
@@ -322,19 +295,9 @@ func cmdChartFromChart(c Chart) CmdChart {
 	}
 }
 
-// hydrate expands templated variables in our config with concrete values
-func (c *CmdConfig) hydrate(tmpDir string) error {
-	c.Logger.Debug().Str("charts", fmt.Sprintf("%+v\n", c.Spec.Charts)).Msg("before hydrate")
-	if err := c.hydrateFiles(tmpDir); err != nil {
-		return err
-	}
-	c.Logger.Debug().Str("charts", fmt.Sprintf("%+v\n", c.Spec.Charts)).Msg("after hydrate")
-	return nil
-}
-
-func (c *CmdConfig) prepareVariables(v []Variable) map[string]string {
-	variables := make(map[string]string)
-	for _, variable := range v {
+func (c *CmdConfig) prepareVariables() map[string]interface{} {
+	variables := make(map[string]interface{})
+	for _, variable := range c.Spec.Variables {
 		variables[variable.Name] = variable.Value
 	}
 	variables["namespace"] = c.Namespace
@@ -343,24 +306,25 @@ func (c *CmdConfig) prepareVariables(v []Variable) map[string]string {
 
 func (c *CmdConfig) populate() {
 	c.Spec.Charts = FindFiles(c.Layers, c.Spec.Charts)
-	c.Spec.Ytt = findYttFiles(c.Layers)
+	c.Spec.Ytt = findYtts(c.Layers)
 }
 
-func findYttFiles(layers []string) []string {
+func findYtts(layers []string) []string {
 	var result []string
 
+	// we cannot use findYaml here because the order matters
 	for _, layer := range layers {
-		fPath := filepath.Join(layer, "ytt")
-		baseYttDirInfo, err := os.Stat(fPath)
-		if err == nil && baseYttDirInfo.IsDir() {
-			result = append(result, fPath)
+		yttDirPath := filepath.Join(layer, "ytt")
+		yttDirInfo, err := os.Stat(yttDirPath)
+		if err == nil && yttDirInfo.IsDir() {
+			result = append(result, yttDirPath)
 		}
 
 		for _, ext := range []string{"yaml", "yml"} {
-			fPath := filepath.Join(layer, fmt.Sprintf("ytt.%s", ext))
-			baseYttFileInfo, err := os.Stat(fPath)
-			if err == nil && !baseYttFileInfo.IsDir() {
-				result = append(result, fPath)
+			yttFilePath := filepath.Join(layer, fmt.Sprintf("ytt.%s", ext))
+			yttFileInfo, err := os.Stat(yttFilePath)
+			if err == nil && !yttFileInfo.IsDir() {
+				result = append(result, yttFilePath)
 			}
 		}
 	}
@@ -421,8 +385,9 @@ func hydrateFiles(tmpDir string, variables map[string]string, paths []string) ([
 	return result, nil
 }
 
-func (c *CmdConfig) hydrateFiles(dirName string) error {
-	variables := c.prepareVariables(c.Spec.Variables)
+// hydrate expands templated variables in our config with concrete values
+func (c *CmdConfig) hydrate(dirName string) error {
+	variables := c.prepareVariables()
 
 	for key, chart := range c.Spec.Charts {
 		paths, err := hydrateFiles(dirName, variables, chart.ValuesFileNames)
@@ -432,6 +397,11 @@ func (c *CmdConfig) hydrateFiles(dirName string) error {
 		chart.ValuesFileNames = paths
 		c.Spec.Charts[key] = chart
 	}
+	paths, err := hydrateFiles(dirName, variables, c.Spec.Ytt)
+	if err != nil {
+		return err
+	}
+	c.Spec.Ytt = paths
 	return nil
 }
 
