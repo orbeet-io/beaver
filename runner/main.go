@@ -33,7 +33,12 @@ func NewRunner(cfg *CmdConfig) *Runner {
 
 // Build is in charge of applying commands based on the config data
 func (r *Runner) Build(tmpDir string) error {
-	outputDir := filepath.Join(r.config.RootDir, "build", r.config.Namespace)
+	var outputDir string
+	if r.config.Output == "" {
+		outputDir = filepath.Join(r.config.RootDir, "build", r.config.Namespace)
+	} else {
+		outputDir = r.config.Output
+	}
 	if r.config.HasShas() {
 		preBuildDir := filepath.Join(tmpDir, "pre-build")
 		if err := r.DoBuild(tmpDir, preBuildDir); err != nil {

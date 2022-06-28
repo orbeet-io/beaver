@@ -100,9 +100,10 @@ func NewConfig(configDir string) (*Config, error) {
 	return cfg, nil
 }
 
-func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool) *CmdConfig {
+func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool, output string) *CmdConfig {
 	cmdConfig := &CmdConfig{}
 	cmdConfig.DryRun = dryRun
+	cmdConfig.Output = output
 	cmdConfig.RootDir = rootDir
 	cmdConfig.Layers = append(cmdConfig.Layers, configDir)
 	cmdConfig.Spec.Charts = make(map[string]CmdChart)
@@ -253,6 +254,7 @@ type CmdConfig struct {
 	Namespace string
 	Logger    zerolog.Logger
 	DryRun    bool
+	Output    string
 }
 
 func (c CmdConfig) HasShas() bool {

@@ -9,8 +9,9 @@ import (
 
 type BuildCmd struct {
 	Args struct {
-		DryRun bool `short:"d" long:"dry-run" description:"if set only prints commands but do not run them"`
-		Keep   bool `short:"k" long:"keep" descriptions:"Keep the temporary files"`
+		DryRun bool   `short:"d" long:"dry-run" description:"if set only prints commands but do not run them"`
+		Keep   bool   `short:"k" long:"keep" descriptions:"Keep the temporary files"`
+		Output string `short:"o" long:"output" descriptions:"output directory"`
 	}
 	PositionnalArgs struct {
 		DirName string `required:"yes" positional-arg-name:"directory"`
@@ -27,7 +28,7 @@ func NewBuildCmd() *BuildCmd {
 func (cmd *BuildCmd) Execute([]string) error {
 	Logger.Info().Str("directory", cmd.PositionnalArgs.DirName).Msg("starting beaver")
 
-	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.DirName, cmd.Args.DryRun)
+	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.DirName, cmd.Args.DryRun, cmd.Args.Output)
 
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	if err != nil {
