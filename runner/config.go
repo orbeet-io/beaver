@@ -1,8 +1,10 @@
 package runner
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,6 +19,11 @@ import (
 type Variable struct {
 	Name  string `mapstructure:"name"`
 	Value string `mapstructure:"value"`
+}
+
+type Sha struct {
+	Key      string `mapstructure:"key"`
+	Resource string `mapstructure:"resource"`
 }
 
 type Chart struct {
@@ -55,6 +62,7 @@ type Config struct {
 	Inherit   string           `mapstructure:"inherit"`
 	NameSpace string           `mapstructure:"namespace"`
 	Variables []Variable       `mapstructure:"variables"`
+	Sha       []Sha            `mapstructure:"sha"`
 	Charts    map[string]Chart `mapstructure:"charts"`
 	Creates   []Create         `mapstructure:"create"`
 	Dir       string           // the directory in which we found the config file
@@ -99,6 +107,7 @@ func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool)
 	cmdConfig.Layers = append(cmdConfig.Layers, configDir)
 	cmdConfig.Spec.Charts = make(map[string]CmdChart)
 	cmdConfig.Spec.Creates = make(map[CmdCreateKey]CmdCreate)
+	cmdConfig.Spec.Shas = []*CmdSha{}
 	cmdConfig.Namespace = ""
 	cmdConfig.Logger = logger
 	return cmdConfig
@@ -195,13 +204,17 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 				Args: k.Args,
 			}
 		}
+		for _, sha := range config.Sha {
+			cmdSha := CmdSha{Key: sha.Key, Resource: sha.Resource}
+			c.Spec.Shas = append(c.Spec.Shas, &cmdSha)
+		}
 	}
 
 	for i, j := 0, len(c.Layers)-1; i < j; i, j = i+1, j-1 {
 		c.Layers[i], c.Layers[j] = c.Layers[j], c.Layers[i]
 	}
 	c.populate()
-	if err := c.hydrate(tmpDir); err != nil {
+	if err := c.hydrate(tmpDir, false); err != nil {
 		return fmt.Errorf("failed to hydrate tmpDir (%s): %w", tmpDir, err)
 	}
 	return nil
@@ -227,6 +240,12 @@ type CmdCreate struct {
 	Args []Arg
 }
 
+type CmdSha struct {
+	Key      string
+	Resource string
+	Sha      string
+}
+
 type CmdConfig struct {
 	Spec      CmdSpec
 	RootDir   string
@@ -236,8 +255,37 @@ type CmdConfig struct {
 	DryRun    bool
 }
 
+func (c CmdConfig) HasShas() bool {
+	return len(c.Spec.Shas) > 0
+}
+
+func (c CmdConfig) SetShas(buildDir string) error {
+	for _, sha := range c.Spec.Shas {
+		if err := sha.SetSha(buildDir); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *CmdSha) SetSha(buildDir string) error {
+	fPath := filepath.Join(buildDir, s.Resource)
+	f, err := os.Open(fPath)
+	if err != nil {
+		return fmt.Errorf("failed to open %s: %w", fPath, err)
+	}
+	defer f.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, f); err != nil {
+		return fmt.Errorf("failed to read %s: %w", fPath, err)
+	}
+	s.Sha = fmt.Sprintf("%x", hash.Sum(nil))
+	return nil
+}
+
 type CmdSpec struct {
 	Variables []Variable
+	Shas      []*CmdSha
 	Charts    CmdCharts
 	Ytt       Ytt
 	Creates   map[CmdCreateKey]CmdCreate
@@ -298,13 +346,26 @@ func cmdChartFromChart(c Chart) CmdChart {
 	}
 }
 
-func (c *CmdConfig) prepareVariables() map[string]interface{} {
+func (c *CmdConfig) prepareVariables(doSha bool) (map[string]interface{}, error) {
 	variables := make(map[string]interface{})
 	for _, variable := range c.Spec.Variables {
 		variables[variable.Name] = variable.Value
 	}
 	variables["namespace"] = c.Namespace
-	return variables
+	shas := make(map[string]string)
+	for _, sha := range c.Spec.Shas {
+		if doSha {
+			if sha.Sha != "" {
+				shas[sha.Key] = sha.Sha
+			} else {
+				return nil,  fmt.Errorf("SHA not found for %s", sha.Key)
+			}
+		} else {
+			shas[sha.Key] = fmt.Sprintf("{{.sha.%s}}", sha.Key)
+		}
+	}
+	variables["sha"] = shas
+	return variables, nil
 }
 
 func (c *CmdConfig) populate() {
@@ -356,7 +417,7 @@ func findYaml(layers []string, name string) []string {
 	return files
 }
 
-func hydrateFiles(tmpDir string, variables map[string]string, paths []string) ([]string, error) {
+func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []string) ([]string, error) {
 	var result []string
 	for _, path := range paths {
 		fileInfo, err := os.Stat(path)
@@ -389,8 +450,11 @@ func hydrateFiles(tmpDir string, variables map[string]string, paths []string) ([
 }
 
 // hydrate expands templated variables in our config with concrete values
-func (c *CmdConfig) hydrate(dirName string) error {
-	variables := c.prepareVariables()
+func (c *CmdConfig) hydrate(dirName string, doSha bool) error {
+	variables , err := c.prepareVariables(doSha)
+	if err != nil {
+		return fmt.Errorf("Cannot prepare variables %w", err)
+	}
 
 	for key, chart := range c.Spec.Charts {
 		paths, err := hydrateFiles(dirName, variables, chart.ValuesFileNames)

@@ -33,10 +33,28 @@ func NewRunner(cfg *CmdConfig) *Runner {
 
 // Build is in charge of applying commands based on the config data
 func (r *Runner) Build(tmpDir string) error {
+	outputDir := filepath.Join(r.config.RootDir, "build", r.config.Namespace)
+	if r.config.HasShas() {
+		preBuildDir := filepath.Join(tmpDir, "pre-build")
+		if err := r.DoBuild(tmpDir, preBuildDir); err != nil {
+			return fmt.Errorf("failed to do pre-build: %w", err)
+		}
+		if err := r.config.SetShas(preBuildDir); err != nil {
+			return fmt.Errorf("failed to set SHAs: %w", err)
+		}
+		if err := r.config.hydrate(tmpDir, true); err != nil {
+			return fmt.Errorf("failed to hydrate tmpDir (%s): %w", tmpDir, err)
+		}
+	}
+	return r.DoBuild(tmpDir, outputDir)
+}
+
+func (r *Runner) DoBuild(tmpDir, outputDir string) error {
 	// TODO: find command full path
 	var yttCmd = "ytt"
 	var helmCmd = "helm"
 	var kubectlCmd = "kubectl"
+
 	// create helm commands
 	// create ytt chart commands
 	cmds := make(map[string]*cmd.Cmd)
@@ -145,7 +163,6 @@ func (r *Runner) Build(tmpDir string) error {
 	if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
 		return fmt.Errorf("cannot write full compiled file: %w", err)
 	}
-	outputDir := filepath.Join(r.config.RootDir, "build", r.config.Namespace)
 	if err := os.RemoveAll(outputDir); err != nil {
 		return fmt.Errorf("cannot cleanup output directory: %w", err)
 	}
