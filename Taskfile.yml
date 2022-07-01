@@ -16,6 +16,14 @@ vars:
   GOLANGCI_LINT_BASE: tools/bin/golangci-lint
   GOLANGCI_LINT_BIN: "{{.GOLANGCI_LINT_BASE}}-{{.GOLANGCI_LINT_VERSION}}"
   GOLANGCI_LINT_ARGS:
+  BUILD_COMMIT_ID:
+    sh: hg id -i
+  # this var is fetched from the env vars. It is intended to capture
+  # the build tag from our CI builder if you want to use it manually
+  # use a command like this:
+  # CI_COMMIT_TAG=myTag task build
+  # this will use the provided version for build linking
+  BUILD_VERSION: "{{.CI_COMMIT_TAG}}/{{.BUILD_COMMIT_ID}}"
 
 tasks:
   default:
@@ -27,8 +35,9 @@ tasks:
     cmds:
       - mkdir -p build
       - |
-        go build \
-          -ldflags "-X 'orus.io/orus-io/beaver/lib.version=${CI_COMMIT_TAG}' -X 'orus.io/orus-io/beaver/lib.commitSha=$(hg id -i --debug)' -X 'orus.io/orus-io/beaver/lib.buildDate=$(date)'" \
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+          -a -tags netgo \
+          -ldflags "-X 'orus.io/orus-io/beaver/lib.version=${CI_COMMIT_TAG}' -X 'orus.io/orus-io/beaver/lib.commitSha=$(hg id -i --debug)' -X 'orus.io/orus-io/beaver/lib.buildDate=$(date)' -w -extldflags "-static"" \
           -o {{.OUTPUT}} \
           main.go
     generates:
