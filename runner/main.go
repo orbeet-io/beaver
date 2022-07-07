@@ -55,6 +55,9 @@ func (r *Runner) Build(tmpDir string) error {
 			return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
 		}
 		variables, err := r.config.prepareVariables(true)
+		if err != nil {
+			return fmt.Errorf("cannot prepare variables: %w", err)
+		}
 		for _, file := range files {
 			inFilePath := filepath.Join(preBuildDir, file.Name())
 			outFilePath := filepath.Join(outputDir, file.Name())

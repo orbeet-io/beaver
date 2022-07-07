@@ -2,6 +2,7 @@ package runner_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -116,37 +117,51 @@ func TestSha(t *testing.T) {
 	buildDir := filepath.Join(shaFixtures, "build", "example")
 
 	configMap := filepath.Join(buildDir, "ConfigMap.v1.demo.yaml")
-	cm := parseFile(t, configMap)
-	sha := getLabel(t, cm, "mysha")
+	cm,  err := parseFile(configMap)
+	require.NoError(t, err)
+	sha, err := getLabel(cm, "mysha")
+	require.NoError(t, err)
 	require.Equal(t, shaValue, sha)
 
 	deployment := filepath.Join(buildDir, "Deployment.apps_v1.nginx.yaml")
-	deploy := parseFile(t, deployment)
-	sha = getLabel(t, deploy, "config.sha")
+	deploy, err := parseFile(deployment)
+	require.NoError(t, err)
+	sha, err = getLabel(deploy, "config.sha")
+	require.NoError(t, err)
 	require.Equal(t, shaValue, sha)
 }
 
-func getLabel(t *testing.T, resource map[string]interface{}, label string) string {
+func getLabel(resource map[string]interface{}, label string) (string, error) {
 	metadata, ok := resource["metadata"].(map[interface{}]interface{})
-	require.True(t, ok)
+	if !ok {
+		return "", fmt.Errorf("fail to get label")
+	}
 	labels, ok := metadata["labels"].(map[interface{}]interface{})
-	require.True(t, ok)
+	if !ok {
+		return "", fmt.Errorf("fail to get label")
+	}
 	result, ok := labels[label].(string)
-	require.True(t, ok)
-	return result
+	if !ok {
+		return "", fmt.Errorf("fail to get label")
+	}
+	return result, nil
 }
 
-func parseFile(t *testing.T, input string) map[string]interface{} {
+func parseFile(input string) (map[string]interface{}, error) {
 	resource := make(map[string]interface{})
 
 	content, err := os.ReadFile(input)
-	require.NoError(t, err)
+	if err != nil {
+		return nil, fmt.Errorf("fail to parse: %w", err)
+	}
 
 	byteContent := bytes.NewReader(content)
 	decoder := yaml.NewDecoder(byteContent)
 
 	err = decoder.Decode(&resource)
-	require.NoError(t, err)
+	if err != nil {
+		return nil, fmt.Errorf("fail to parse: %w", err)
+	}
 
-	return resource
+	return resource, nil
 }

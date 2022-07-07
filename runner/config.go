@@ -100,6 +100,9 @@ func NewConfig(configDir string) (*Config, error) {
 			return nil, fmt.Errorf("fail to read config file: %s - %w", configPath, err)
 		}
 		err = yaml.Unmarshal(configFile, &config)
+		if err != nil {
+			return nil, fmt.Errorf("fail unmarshal config file: %s - %w", configPath, err)
+		}
 		return &config, nil
 	}
 
@@ -433,7 +436,7 @@ func hydrate(input string, output *os.File, variables map[string]interface{}) er
 
 	t, err := fasttemplate.NewTemplate(template, "<[", "]>")
 	if err != nil {
-		return fmt.Errorf("unexpected error when parsing template: %s", err)
+		return fmt.Errorf("unexpected error when parsing template: %w", err)
 	}
 	s := t.ExecuteString(variables)
 	if _, err := output.Write([]byte(s)); err != nil {
