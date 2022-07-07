@@ -2,9 +2,11 @@ package runner_test
 
 import (
 	"os"
+	"bytes"
 	"path/filepath"
 	"testing"
 
+	"github.com/go-yaml/yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -96,19 +98,55 @@ func TestCreateConfig(t *testing.T) {
 	}
 }
 
-/*
 func TestSha(t *testing.T) {
+	shaValue := "2145bea9e32804c65d960e6d4af1c87f95ccc39fad7df5eec2f3925a193112ab"
 	tl := testutils.NewTestLogger(t)
 	absConfigDir, err := filepath.Abs(shaFixtures)
 	require.NoError(t, err)
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, "base", false, "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
-	// defer func() {
-	// 	assert.NoError(t, os.RemoveAll(tmpDir))
-	// }()
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tmpDir))
+	}()
 	require.NoError(t, c.Initialize(tmpDir))
 	r := runner.NewRunner(c)
 	require.NoError(t, r.Build(tmpDir))
+
+	buildDir := filepath.Join(shaFixtures, "build", "example")
+
+	configMap := filepath.Join(buildDir, "ConfigMap.v1.demo.yaml")
+	cm := parseFile(t, configMap)
+	sha := getLabel(t, cm, "mysha")
+	require.Equal(t, shaValue, sha)
+
+	deployment := filepath.Join(buildDir, "Deployment.apps_v1.nginx.yaml")
+	deploy := parseFile(t, deployment)
+	sha = getLabel(t, deploy, "config.sha")
+	require.Equal(t, shaValue, sha)
 }
-*/
+
+func getLabel(t *testing.T, resource map[string]interface{}, label string) string {
+	metadata, ok := resource["metadata"].(map[interface{}]interface{})
+	require.True(t, ok)
+	labels, ok := metadata["labels"].(map[interface{}]interface{})
+	require.True(t, ok)
+	result, ok := labels[label].(string)
+	require.True(t, ok)
+	return result
+}
+
+func parseFile(t *testing.T, input string) map[string]interface{} {
+	resource := make(map[string]interface{})
+
+	content, err := os.ReadFile(input)
+	require.NoError(t, err)
+
+	byteContent := bytes.NewReader(content)
+	decoder := yaml.NewDecoder(byteContent)
+
+	err = decoder.Decode(&resource)
+	require.NoError(t, err)
+
+	return resource
+}
