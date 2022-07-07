@@ -18,7 +18,6 @@
 - template engine:
 	- [helm](https://helm.sh/)
 	- [ytt](https://carvel.dev/ytt/)
-	# TODO document this feature!!
 	- [kubectl create](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create)
 - patch engine:
 	- [ytt overlay](https://carvel.dev/ytt/docs/v0.39.0/ytt-overlays/)
