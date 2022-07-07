@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	fixtures = "fixtures/f1"
+	fixtures    = "fixtures/f1"
+	shaFixtures = "fixtures/f2"
 )
 
 func TestConfig(t *testing.T) {
@@ -94,3 +95,20 @@ func TestCreateConfig(t *testing.T) {
 		)
 	}
 }
+
+/*
+func TestSha(t *testing.T) {
+	tl := testutils.NewTestLogger(t)
+	absConfigDir, err := filepath.Abs(shaFixtures)
+	require.NoError(t, err)
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, "base", false, "")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
+	require.NoError(t, err)
+	// defer func() {
+	// 	assert.NoError(t, os.RemoveAll(tmpDir))
+	// }()
+	require.NoError(t, c.Initialize(tmpDir))
+	r := runner.NewRunner(c)
+	require.NoError(t, r.Build(tmpDir))
+}
+*/

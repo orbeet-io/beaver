@@ -1,0 +1,10 @@
+#@ load("@ytt:data", "data")
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo
+  label:
+    mysha: #@ data.values.sha
+data:
+  answer: #@ data.values.answer

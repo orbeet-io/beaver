@@ -1,0 +1,3 @@
+config:
+  name: demo
+  sha: <[sha.configmap_demo]>

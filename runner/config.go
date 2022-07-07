@@ -9,10 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
+	"github.com/valyala/fasttemplate"
 )
 
 // Variable ...
@@ -354,19 +354,18 @@ func (c *CmdConfig) prepareVariables(doSha bool) (map[string]interface{}, error)
 		variables[variable.Name] = variable.Value
 	}
 	variables["namespace"] = c.Namespace
-	shas := make(map[string]string)
 	for _, sha := range c.Spec.Shas {
+		key := fmt.Sprintf("sha.%s", sha.Key)
 		if doSha {
 			if sha.Sha != "" {
-				shas[sha.Key] = sha.Sha
+				variables[key] = sha.Sha
 			} else {
 				return nil,  fmt.Errorf("SHA not found for %s", sha.Key)
 			}
 		} else {
-			shas[sha.Key] = fmt.Sprintf("{{.sha.%s}}", sha.Key)
+			variables[key] = fmt.Sprintf("<[sha.%s]>", sha.Key)
 		}
 	}
-	variables["sha"] = shas
 	return variables, nil
 }
 
@@ -419,6 +418,24 @@ func findYaml(layers []string, name string) []string {
 	return files
 }
 
+func hydrate(input string, output *os.File, variables map[string]interface{}) error {
+	byteTemplate, err := ioutil.ReadFile(input)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", input, err)
+	}
+	template := string(byteTemplate)
+
+	t, err := fasttemplate.NewTemplate(template, "<[", "]>")
+	if err != nil {
+		return fmt.Errorf("unexpected error when parsing template: %s", err)
+	}
+	s := t.ExecuteString(variables)
+	if _, err := output.Write([]byte(s)); err != nil {
+		return fmt.Errorf("failed to template for %s: %w", output.Name(), err)
+	}
+	return nil
+}
+
 func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []string) ([]string, error) {
 	var result []string
 	for _, path := range paths {
@@ -431,10 +448,6 @@ func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []strin
 			continue
 		}
 
-		tmpl, err := template.New(filepath.Base(path)).ParseFiles(path)
-		if err != nil {
-			return nil, err
-		}
 		ext := filepath.Ext(path)
 		tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s-*%s", strings.TrimSuffix(filepath.Base(path), ext), ext))
 		if err != nil {
@@ -443,8 +456,8 @@ func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []strin
 		defer func() {
 			_ = tmpFile.Close()
 		}()
-		if err := tmpl.Execute(tmpFile, variables); err != nil {
-			return nil, fmt.Errorf("hydrateFiles failed to execute template: %w", err)
+		if err := hydrate(path, tmpFile, variables); err != nil {
+			return nil, fmt.Errorf("failed to hydrate: %w", err)
 		}
 		result = append(result, tmpFile.Name())
 	}

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    config.sha: {{ .Values.config.sha }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      demo: nginx
+  template:
+    metadata:
+      labels:
+        demo: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: NGINX_ANSWER
+        valueFrom:
+          configMapKeyRef:
+            name: {{ .Values.config.name }}
+            key: answer

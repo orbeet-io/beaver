@@ -1,0 +1,11 @@
+namespace: example
+sha:
+- key: configmap_demo
+  resource: ConfigMap.v1.demo.yaml
+charts:
+  demoytt:
+    type: ytt
+    path: demoytt.tmpl.yaml
+  demohelm:
+    type: helm
+    path: demohelm

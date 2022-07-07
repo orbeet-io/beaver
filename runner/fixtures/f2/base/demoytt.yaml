@@ -1,0 +1,4 @@
+#@data/values
+---
+answer: 42
+sha: <[sha.configmap_demo]>

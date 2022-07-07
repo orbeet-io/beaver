@@ -5,5 +5,5 @@ initdbScripts:
   create.sql: |
     CREATE EXTENSION IF NOT EXISTS unaccent;
 
-postgresqlUsername: "<path:{{.VAULT_KV}}/data/{{.namespace}}/postgres#username>"
-postgresqlDatabase: "<path:{{.VAULT_KV}}/data/{{.namespace}}/postgres#database>"
+postgresqlUsername: "<path:<[VAULT_KV]>/data/<[namespace]>/postgres#username>"
+postgresqlDatabase: "<path:<[VAULT_KV]>/data/<[namespace]>/postgres#database>"

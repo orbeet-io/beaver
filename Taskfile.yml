@@ -32,6 +32,17 @@ tasks:
     cmds:
       - task: build
 
+  dev-build:
+    desc: build golang project
+    cmds:
+      - mkdir -p build
+      - |
+        CGO_ENABLED=0 GOOS={{.GOOS}} GOARCH=amd64 go build \
+          -o {{.OUTPUT}} \
+          main.go
+    generates:
+      - "{{.OUTPUT}}"
+
   build:
     desc: build golang project
     cmds:
