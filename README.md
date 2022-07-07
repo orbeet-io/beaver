@@ -175,4 +175,7 @@ label:
 
 You can patch **all** your compiled resources using
 [ytt overlays](https://carvel.dev/ytt/docs/v0.39.0/ytt-overlays/) by providing
-`ytt.yaml` or `ytt.yml` or a `ytt` folder inside your beaver project(s).
+`ytt.yaml` or `ytt.yml` files or a `ytt` folder inside your beaver project(s).
+
+ytt files (outside of ytt folder) are threaten as value files, which mean that
+your can use beaver variables inside those ones.
