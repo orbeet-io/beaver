@@ -11,19 +11,20 @@
 
 ## Description
 
-Beaver is a tool to build your k8s templates in a descriptive way.
+`beaver` is a tool to build your k8s templates in a descriptive way.
 
 ## Features
 
 - template engine:
 	- [helm](https://helm.sh/)
 	- [ytt](https://carvel.dev/ytt/)
+	# TODO document this feature!!
 	- [kubectl create](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create)
-- patch:
+- patch engine:
 	- [ytt overlay](https://carvel.dev/ytt/docs/v0.39.0/ytt-overlays/)
 - multi environment variables
 - sha256 sum for any compiled resource can be used as variable
-- inheritance between beaver project
+- inheritance between `beaver` project
 - each built resource is output inside it's own file
 
 ## Usage
@@ -36,7 +37,7 @@ see `beaver build --help` for more options.
 
 ## Beaver project
 
-A beaver project consist of a folder with a beaver config file,  either `beaver.yaml` or `beaver.yml`.
+A `beaver` project consists of a folder with a `beaver` config file,  either `beaver.yaml` or `beaver.yml`.
 
 ## Beaver config file
 
@@ -48,32 +49,39 @@ inherit: ../../base  # path is relative to this beaver config file
 # your project charts
 charts:
   postgres:                           # your chart local name
-    type: helm                        # can be either elm or ytt
+    type: helm                        # can be either helm or ytt
     path: ../.vendor/helm/postgresql  # path to your chart - relative to this file
 # beaver variables that can be used inside your charts value files
 variables:
 - name: tag      # give your variable a name
   value: v1.2.3  # and a value
-# generate beaver variables from compiled resource file
+# generate beaver variables from compiled resource file sha256
 sha:
 - key: configmap_demo               # use to generate beaver variable name
   resource: ConfigMap.v1.demo.yaml  # compiled resource filename
+# create some resources using `kubectl create`
+create:
+- type: configmap       # resource kind as passed to kubectl create
+  name: xbus-pipelines  # resource name
+  args:                 # kubectl create arguments
+  - flag: --from-file
+    value: pipelines
 ```
 
 ## Value files
 
-Value files use the following format:
+Value files filename use the following format:
 
 ```
 <chart_local_name>.[yaml,yml]
 ```
 
-you can provide value files for your chart using its local name, and beaver will
-pass this file to your template engine.
+you can provide a value file for your chart using its local name, and `beaver`
+will pass this file to your template engine.
 
 If you have a value file with the same name inside an inherited project then
-beaver will also pass this one, but prior to your project file. This ensure that
-your current values overwrite inherited values.
+`beaver` will also pass this one, but prior to your project file. This ensures
+that your current values overwrite inherited values.
 
 example:
 
@@ -101,13 +109,14 @@ inherit: ../../base
 namespace: demo
 ```
 
-In the example above beaver will automaticaly pass `base/postgres.yml` and then
-`environments/demo/postgres.yaml` to then helm command using `.vendor/postgresql`
-as the chart folder.
+In the example above `beaver` will automaticaly pass `base/postgres.yml` and then
+`environments/demo/postgres.yaml` to helm using `.vendor/postgresql` as chart
+folder.
 
 ## Beaver variables
 
-Beaver variables can be used inside your value files using the following syntax:
+`beaver` variables can be used inside your value files, and **only** inside value
+files, using the following syntax:
 
 ```
 <[variable_name]>
@@ -130,11 +139,29 @@ image:
   tag: <[pg_tag]>
 ```
 
-Beaver variables are merged during inheritance.
+`beaver` variables are merged during inheritance, example:
+
+```yaml
+# base/beaver.yaml
+variables:
+- name: pg_tag
+  value: 14.4-alpine
+```
+
+```yaml
+# environments/demo/beaver.yaml
+inherit: ../../base
+variables:
+- name: pg_tag
+  value: 13.7-alpine
+```
+
+here `pg_tag` value will be `13.7-alpine` if you run
+`beaver build environments/demo`.
 
 ## Output files
 
-Beaver output files have the following format:
+`beaver` output files have the following format:
 
 ```
 <kind>.<apiVersion>.<metadata.name>.yaml
@@ -144,12 +171,12 @@ all `apiVersion` slashes (`/`) are replaced by underscores (`_`).
 
 This convention will help you reviewing merge requests.
 
-By default beaver will store those files inside `./build/<namespace>`, you can
-use `-o` or `--output` build flag to specify an output directory.
+By default `beaver` will store those files inside `${PWD}/build/<namespace>`, you
+can use `-o` or `--output` to specify an output directory.
 
 ## sha256 sum variables
 
-Use generated sha256 in your chart value files with the following syntax:
+Use generated sha256 sum in your chart value files with the following syntax:
 
 ```
 <[sha.key]>
@@ -158,15 +185,18 @@ Use generated sha256 in your chart value files with the following syntax:
 For example:
 
 ```yaml
+# base/beaver.yaml
 sha:
 - key: configmap_demo
   resource: ConfigMap.v1.demo.yaml
 ```
+
 Will generate a sha256 hex sum for `ConfigMap.v1.demo.yaml` compiled file.
 
 Then you can use it in your value file using:
 
 ```yaml
+# base/postgres.yml
 label:
   configmapSha: <[sha.configmap_demo]>
 ```
@@ -175,7 +205,31 @@ label:
 
 You can patch **all** your compiled resources using
 [ytt overlays](https://carvel.dev/ytt/docs/v0.39.0/ytt-overlays/) by providing
-`ytt.yaml` or `ytt.yml` files or a `ytt` folder inside your beaver project(s).
+`ytt.yaml` or `ytt.yml` files or a `ytt` folder inside your `beaver` project(s).
 
-ytt files (outside of ytt folder) are threaten as value files, which mean that
-your can use beaver variables inside those ones.
+You can use `beaver` variables inside ytt files (outside of ytt folder), because
+`beaver` considers those as value files.
+
+## Create resources using kubectl create
+
+example:
+
+```yaml
+# base/beaver.yaml
+# create some resources using `kubectl create`
+create:
+- type: configmap       # resource kind as passed to kubectl create
+  name: xbus-pipelines  # resource name
+  args:                 # kubectl create arguments
+  - flag: --from-file
+    value: pipelines
+```
+
+In the current context we have a `pipelines` folder inside `base` folder with
+some files inside it.
+
+`beaver` will run the following command **inside** `base` folder:
+
+```sh
+kubectl create configmap xbus-pipelines --from-file pipelines
+```
