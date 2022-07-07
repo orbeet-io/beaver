@@ -1,8 +1,8 @@
 package runner_test
 
 import (
-	"os"
 	"bytes"
+	"os"
 	"path/filepath"
 	"testing"
 

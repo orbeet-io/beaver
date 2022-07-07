@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-yaml/yaml"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasttemplate"
@@ -17,29 +18,29 @@ import (
 
 // Variable ...
 type Variable struct {
-	Name  string `mapstructure:"name"`
-	Value string `mapstructure:"value"`
+	Name  string
+	Value string
 }
 
 type Sha struct {
-	Key      string `mapstructure:"key"`
-	Resource string `mapstructure:"resource"`
+	Key      string
+	Resource string
 }
 
 type Chart struct {
-	Type string `mapstructure:"type"`
-	Path string `mapstructure:"path"`
+	Type string
+	Path string
 }
 
 type Arg struct {
-	Flag  string `mapstructure:"flag"`
-	Value string `mapstructure:"value"`
+	Flag  string
+	Value string
 }
 
 type Create struct {
-	Type string `mapstructure:"type"`
-	Name string `mapstructure:"name"`
-	Args []Arg  `mapstructure:"args"`
+	Type string
+	Name string
+	Args []Arg  `yaml:",flow"`
 }
 
 func (k CmdCreateKey) BuildArgs(namespace string, args []Arg) []string {
@@ -59,12 +60,12 @@ func (k CmdCreateKey) BuildArgs(namespace string, args []Arg) []string {
 
 // Config ...
 type Config struct {
-	Inherit   string           `mapstructure:"inherit"`
-	NameSpace string           `mapstructure:"namespace"`
-	Variables []Variable       `mapstructure:"variables"`
-	Sha       []Sha            `mapstructure:"sha"`
-	Charts    map[string]Chart `mapstructure:"charts"`
-	Creates   []Create         `mapstructure:"create"`
+	Inherit   string
+	NameSpace string
+	Variables []Variable       `yaml:",flow"`
+	Sha       []Sha            `yaml:",flow"`
+	Charts    map[string]Chart `yaml:",flow"`
+	Creates   []Create         `yaml:"create,flow"`
 	Dir       string           // the directory in which we found the config file
 }
 
@@ -85,19 +86,24 @@ func (c *Config) Absolutize(dir string) error {
 
 // NewConfig returns a *Config
 func NewConfig(configDir string) (*Config, error) {
-	v := viper.New()
-	v.SetConfigName("beaver")
-	v.AddConfigPath(configDir)
-	if err := v.ReadInConfig(); err != nil {
-		return nil, err
-	}
-	var config Config
-	cfg := &config
-	if err := v.Unmarshal(&cfg); err != nil {
-		return nil, err
+	var configName = "beaver"
+	config := Config{}
+
+	for _, ext := range []string{"yaml", "yml"} {
+		configPath := filepath.Join(configDir, fmt.Sprintf("%s.%s", configName, ext))
+		configInfo, err := os.Stat(configPath)
+		if err != nil || configInfo.IsDir() {
+			continue
+		}
+		configFile, err := ioutil.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("fail to read config file: %s - %w", configPath, err)
+		}
+		err = yaml.Unmarshal(configFile, &config)
+		return &config, nil
 	}
 
-	return cfg, nil
+	return nil, fmt.Errorf("no beaver file found in %s", configDir)
 }
 
 func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool, output string) *CmdConfig {
@@ -232,8 +238,8 @@ func (c *CmdConfig) newConfigFromDir(dir string) (*Config, error) {
 }
 
 type CmdCreateKey struct {
-	Type string `mapstructure:"type"`
-	Name string `mapstructure:"name"`
+	Type string
+	Name string
 }
 
 type CmdCreate struct {
