@@ -2,7 +2,6 @@ package runner_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -44,32 +43,6 @@ func TestCmdConfig(t *testing.T) {
 	}()
 	require.NoError(t, c.Initialize(tmpDir))
 
-	t.Run("helmCharts", func(t *testing.T) {
-		pgHelmChart, ok := c.Spec.Charts["postgres"]
-		require.True(t, ok, "we should have a postgres helm chart in our cmdConfig")
-
-		require.Equal(t, 2, len(pgHelmChart.ValuesFileNames))
-		file1Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[0])
-		require.NoError(t, err)
-
-		assert.Equal(t, `persistence:
-  storageClass: huawei-iscsi
-
-initdbScripts:
-  create.sql: |
-    CREATE EXTENSION IF NOT EXISTS unaccent;
-
-postgresqlUsername: "<path:k8s.orus.io/data/ns1/postgres#username>"
-postgresqlDatabase: "<path:k8s.orus.io/data/ns1/postgres#database>"
-`, string(file1Content))
-
-		file2Content, err := ioutil.ReadFile(pgHelmChart.ValuesFileNames[1])
-		require.NoError(t, err)
-		assert.Equal(t, `image:
-  tag: 14
-`, string(file2Content))
-	})
-
 	t.Run("yttCharts", func(t *testing.T) {
 		odooYttChart, ok := c.Spec.Charts["odoo"]
 		require.True(t, ok, "we should have an odoo ytt chart in our cmdConfig")
@@ -83,6 +56,74 @@ postgresqlDatabase: "<path:k8s.orus.io/data/ns1/postgres#database>"
 		logger.Debug().Str("patches", fmt.Sprintf("%+v", yttPatches)).Msg("found patches")
 		require.Equal(t, 4, len(yttPatches))
 	})
+
+	t.Run("helmCharts", func(t *testing.T) {
+		buildDir := filepath.Join(fixtures, "build", "ns1")
+		defer func() {
+			require.NoError(t, runner.CleanDir(buildDir))
+		}()
+		r := runner.NewRunner(c)
+		require.NoError(t, r.Build(tmpDir))
+
+		deployment := filepath.Join(buildDir, "Deployment.apps_v1.postgres.yaml")
+		deploy, err := parseFile(deployment)
+		require.NoError(t, err)
+
+		envVars, err := getEnvVars(deploy)
+		require.NoError(t, err)
+
+		pguser, ok := envVars["PGUSER"]
+		require.True(t, ok)
+		assert.Equal(t, "<path:k8s.orus.io/data/ns1/postgres#username>", pguser)
+
+		pgdatabase, ok := envVars["PGDATABASE"]
+		require.True(t, ok)
+		assert.Equal(t, "<path:k8s.orus.io/data/ns1/postgres#database>", pgdatabase)
+	})
+}
+
+func getEnvVars(resource map[string]interface{}) (map[string]string, error) {
+	result := make(map[string]string)
+	spec, ok := resource["spec"].(map[interface{}]interface{})
+	if !ok {
+		return nil, fmt.Errorf("fail to env var: spec")
+	}
+	template, ok := spec["template"].(map[interface{}]interface{})
+	if !ok {
+		return nil, fmt.Errorf("fail to env var: template")
+	}
+	containersSpec, ok := template["spec"].(map[interface{}]interface{})
+	if !ok {
+		return nil, fmt.Errorf("fail to env var: containersSpec")
+	}
+	containers, ok := containersSpec["containers"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("fail to env var: containers")
+	}
+	container, ok := containers[0].(map[interface{}]interface{})
+	if !ok {
+		return nil, fmt.Errorf("fail to env var: container")
+	}
+	env, ok := container["env"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("fail to env var: env")
+	}
+	for _, item := range env {
+		e, ok := item.(map[interface{}]interface{})
+		if !ok {
+			return nil, fmt.Errorf("fail to env var: env var: %v", item)
+		}
+		name, ok := e["name"].(string)
+		if !ok {
+			return nil, fmt.Errorf("fail to env var: env var name: %v", item)
+		}
+		value, ok := e["value"].(string)
+		if !ok {
+			return nil, fmt.Errorf("fail to env var: env var value: %v", item)
+		}
+		result[name] = value
+	}
+	return result, nil
 }
 
 func TestFindFiles(t *testing.T) {
@@ -115,7 +156,7 @@ func TestYamlSplit(t *testing.T) {
 		tokens := strings.Split(fileName, ".")
 		require.Equal(t, 4, len(tokens))
 
-		// <apiVersion>.<kind>.<name>.yaml
+		// <kind>.<apiVersion>.<name>.yaml
 		content, err := os.ReadFile(filePath)
 		require.NoError(t, err)
 		assert.Equal(t, "---", string(content)[:3])

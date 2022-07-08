@@ -1,0 +1,29 @@
+#@ load("@ytt:data", "data")
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io: odoo
+      role: #@ data.values.odoo.role
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io: odoo
+        role: #@ data.values.odoo.role
+    spec:
+      containers:
+      - name: name
+        image: #@ data.values.odoo.image + ":" + "{}".format(data.values.odoo.tag)
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        ports:
+        - containerPort: 8069
+        serviceAccountName: #@ data.values.odoo.serviceAccountName

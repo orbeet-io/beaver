@@ -8,4 +8,4 @@ create:
   name: xbus-pipelines
   args:
   - flag: --from-file
-    value: environments/ns1/pipelines
+    value: pipelines

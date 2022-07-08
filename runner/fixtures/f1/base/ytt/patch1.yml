@@ -1,6 +1,10 @@
+#@ load("@ytt:data", "data")
 #@ load("@ytt:overlay", "overlay")
 
-#@overlay/match by=overlay.subset({"kind": "Certificate"}), expects="0+"
+#@overlay/match by=overlay.subset({"kind": "Deployment", "metadata": {"name": "odoo"}}), expects="0+"
 ---
-#@overlay/match missing_ok=True
-apiVersion: cert-manager.io/v1
+#@overlay/match
+metadata:
+  #@overlay/match missing_ok=True
+  labels:
+    build-with: #@ data.values.hello + "-beaver"

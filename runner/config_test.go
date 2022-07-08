@@ -92,7 +92,7 @@ func TestCreateConfig(t *testing.T) {
 				"create",
 				"configmap", "xbus-pipelines",
 				"--dry-run=client", "-o", "yaml",
-				"--from-file", "environments/ns1/pipelines",
+				"--from-file", "pipelines",
 			},
 			args,
 		)
@@ -101,6 +101,11 @@ func TestCreateConfig(t *testing.T) {
 
 func TestSha(t *testing.T) {
 	shaValue := "2145bea9e32804c65d960e6d4af1c87f95ccc39fad7df5eec2f3925a193112ab"
+	buildDir := filepath.Join(shaFixtures, "build", "example")
+	defer func() {
+		require.NoError(t, runner.CleanDir(buildDir))
+	}()
+
 	tl := testutils.NewTestLogger(t)
 	absConfigDir, err := filepath.Abs(shaFixtures)
 	require.NoError(t, err)
@@ -113,8 +118,6 @@ func TestSha(t *testing.T) {
 	require.NoError(t, c.Initialize(tmpDir))
 	r := runner.NewRunner(c)
 	require.NoError(t, r.Build(tmpDir))
-
-	buildDir := filepath.Join(shaFixtures, "build", "example")
 
 	configMap := filepath.Join(buildDir, "ConfigMap.v1.demo.yaml")
 	cm,  err := parseFile(configMap)
@@ -134,15 +137,15 @@ func TestSha(t *testing.T) {
 func getLabel(resource map[string]interface{}, label string) (string, error) {
 	metadata, ok := resource["metadata"].(map[interface{}]interface{})
 	if !ok {
-		return "", fmt.Errorf("fail to get label")
+		return "", fmt.Errorf("fail to get label: metadata")
 	}
 	labels, ok := metadata["labels"].(map[interface{}]interface{})
 	if !ok {
-		return "", fmt.Errorf("fail to get label")
+		return "", fmt.Errorf("fail to get label: labels")
 	}
 	result, ok := labels[label].(string)
 	if !ok {
-		return "", fmt.Errorf("fail to get label")
+		return "", fmt.Errorf("fail to get label: result")
 	}
 	return result, nil
 }
