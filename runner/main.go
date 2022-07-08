@@ -39,42 +39,40 @@ func (r *Runner) Build(tmpDir string) error {
 	} else {
 		outputDir = r.config.Output
 	}
-	if r.config.HasShas() {
-		preBuildDir := filepath.Join(tmpDir, "pre-build")
-		if err := r.DoBuild(tmpDir, preBuildDir); err != nil {
-			return fmt.Errorf("failed to do pre-build: %w", err)
-		}
-		if err := r.config.SetShas(preBuildDir); err != nil {
-			return fmt.Errorf("failed to set SHAs: %w", err)
-		}
-		files, err := ioutil.ReadDir(preBuildDir)
-		if err != nil {
-			return fmt.Errorf("cannot list directory: %s - %w", preBuildDir, err)
-		}
-		if err := cleanDir(outputDir); err != nil {
-			return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
-		}
-		variables, err := r.config.prepareVariables(true)
-		if err != nil {
-			return fmt.Errorf("cannot prepare variables: %w", err)
-		}
-		for _, file := range files {
-			inFilePath := filepath.Join(preBuildDir, file.Name())
-			outFilePath := filepath.Join(outputDir, file.Name())
-			outFile, err := os.Create(outFilePath)
-			if err != nil {
-				return fmt.Errorf("cannot open: %s - %w", outFilePath, err)
-			}
-			defer func() {
-				_ = outFile.Close()
-			}()
-			if err := hydrate(inFilePath, outFile, variables); err != nil {
-				return fmt.Errorf("cannot hidrate: %s - %w", outFilePath, err)
-			}
-		}
-		return nil
+
+	preBuildDir := filepath.Join(tmpDir, "pre-build")
+	if err := r.DoBuild(tmpDir, preBuildDir); err != nil {
+		return fmt.Errorf("failed to do pre-build: %w", err)
 	}
-	return r.DoBuild(tmpDir, outputDir)
+	if err := r.config.SetShas(preBuildDir); err != nil {
+		return fmt.Errorf("failed to set SHAs: %w", err)
+	}
+	files, err := ioutil.ReadDir(preBuildDir)
+	if err != nil {
+		return fmt.Errorf("cannot list directory: %s - %w", preBuildDir, err)
+	}
+	if err := CleanDir(outputDir); err != nil {
+		return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
+	}
+	variables, err := r.config.prepareVariables(true)
+	if err != nil {
+		return fmt.Errorf("cannot prepare variables: %w", err)
+	}
+	for _, file := range files {
+		inFilePath := filepath.Join(preBuildDir, file.Name())
+		outFilePath := filepath.Join(outputDir, file.Name())
+		outFile, err := os.Create(outFilePath)
+		if err != nil {
+			return fmt.Errorf("cannot open: %s - %w", outFilePath, err)
+		}
+		defer func() {
+			_ = outFile.Close()
+		}()
+		if err := hydrate(inFilePath, outFile, variables); err != nil {
+			return fmt.Errorf("cannot hidrate: %s - %w", outFilePath, err)
+		}
+	}
+	return nil
 }
 
 func (r *Runner) DoBuild(tmpDir, outputDir string) error {
@@ -191,7 +189,7 @@ func (r *Runner) DoBuild(tmpDir, outputDir string) error {
 	if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
 		return fmt.Errorf("cannot write full compiled file: %w", err)
 	}
-	if err := cleanDir(outputDir); err != nil {
+	if err := CleanDir(outputDir); err != nil {
 		return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
 	}
 	if _, err := YamlSplit(outputDir, tmpFile.Name()); err != nil {
@@ -201,7 +199,7 @@ func (r *Runner) DoBuild(tmpDir, outputDir string) error {
 	return nil
 }
 
-func cleanDir(directory string) error {
+func CleanDir(directory string) error {
 	if err := os.RemoveAll(directory); err != nil {
 		return fmt.Errorf("cannot cleanup output directory: %w", err)
 	}
