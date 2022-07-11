@@ -12,6 +12,7 @@ unit_tests:
     YTT_VERSION: v0.41.1
     YTT_SHA256: 65dbc4f3a4a2ed84296dd1b323e8e7bd77e488fa7540d12dd36cf7fb2fc77c03
     HELM_VERSION: v3.9.0
+    KUBECTL_VERSION: v1.23.8
   cache:
     key: tooling
     paths:
@@ -20,14 +21,21 @@ unit_tests:
       - .cache/gocache
       - tools/bin
   before_script:
+    # install ytt
     - curl -LO https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-amd64
     - echo "${YTT_SHA256} *ytt-linux-amd64" | sha256sum -c
     - install -o root -g root -m 0755 ytt-linux-amd64 /usr/local/bin/ytt
+    # install helm
     - curl -LO https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
     - curl -LO https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz.sha256sum
     - echo "$(cat helm-${HELM_VERSION}-linux-amd64.tar.gz.sha256sum)" | sha256sum -c
     - tar xf helm-${HELM_VERSION}-linux-amd64.tar.gz
     - install -o root -g root -m 0755 linux-amd64/helm /usr/local/bin/helm
+    # install kubectl
+    - curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
+    - curl -LO "https://dl.k8s.io/$KUBECTL_VERSION/bin/linux/amd64/kubectl.sha256"
+    - echo "$(cat kubectl.sha256) *kubectl" | sha256sum -c
+    - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
   script:
     - sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b tools/bin
     - tools/bin/task test
