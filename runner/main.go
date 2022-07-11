@@ -17,6 +17,10 @@ import (
 var (
 	defaultFileMod os.FileMode = 0600
 	defaultDirMod  os.FileMode = 0700
+	// TODO: find commands full path
+	yttCmd     = "ytt"
+	helmCmd    = "helm"
+	kubectlCmd = "kubectl"
 )
 
 // Runner is the struct in charge of launching commands
@@ -66,7 +70,9 @@ func (r *Runner) Build(tmpDir string) error {
 			return fmt.Errorf("cannot open: %s - %w", outFilePath, err)
 		}
 		defer func() {
-			_ = outFile.Close()
+			if err := outFile.Close(); err != nil {
+				r.config.Logger.Fatal().Err(err).Msg("cannot close hydrated file")
+			}
 		}()
 		if err := hydrate(inFilePath, outFile, variables); err != nil {
 			return fmt.Errorf("cannot hidrate: %s - %w", outFilePath, err)
@@ -76,18 +82,125 @@ func (r *Runner) Build(tmpDir string) error {
 }
 
 func (r *Runner) DoBuild(tmpDir, outputDir string) error {
-	// TODO: find command full path
-	var yttCmd = "ytt"
-	var helmCmd = "helm"
-	var kubectlCmd = "kubectl"
+	cmds, err := r.prepareCmds()
+	if err != nil {
+		return err
+	}
 
+	compiled, err := r.runCommands(tmpDir, cmds)
+	if err != nil {
+		return err
+	}
+
+	yttOutput, err := r.runYtt(tmpDir, compiled)
+	if err != nil {
+		return err
+	}
+
+	kustomizeOutput, err := r.kustomize(tmpDir, yttOutput)
+	if err != nil {
+		return err
+	}
+
+	if r.config.DryRun {
+		return nil
+	}
+
+	if err := CleanDir(outputDir); err != nil {
+		return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
+	}
+	if _, err := YamlSplit(outputDir, kustomizeOutput.Name()); err != nil {
+		return fmt.Errorf("cannot split full compiled file: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Runner) kustomize(tmpDir string, input *os.File) (*os.File, error) {
+	kustomizeFilePath := filepath.Join(tmpDir, "kustomization.yaml")
+	f, err := os.Create(kustomizeFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("fail to open %s: %w", kustomizeFilePath, err)
+	}
+	_, err = f.Write([]byte(fmt.Sprintf("resources: [%s]", filepath.Base(input.Name()))))
+	if err != nil {
+		return nil, fmt.Errorf("fail to write %s: %w", kustomizeFilePath, err)
+	}
+
+	variables, err := r.config.prepareVariables(false)
+	if err != nil {
+		return nil, fmt.Errorf("cannot prepare kustomize variables: %w", err)
+	}
+
+	var lastKustomizeFolder string
+
+	for _, layer := range r.config.Layers {
+		for _, ext := range []string{"yml", "yaml"} {
+			fName := fmt.Sprintf("kustomization.%s", ext)
+			fPath := filepath.Join(layer, "kustomize", fName)
+
+			fStat, err := os.Stat(fPath)
+			if err != nil || fStat.IsDir() {
+				continue
+			}
+			backupFile := fmt.Sprintf("%s.back", fPath)
+			if err := Copy(fPath, backupFile); err != nil {
+				return nil, fmt.Errorf("cannot copy kustomization file: %w", err)
+			}
+			defer func(fPath string) {
+				if err := Copy(backupFile, fPath); err != nil {
+					r.config.Logger.Fatal().Err(err).Msg("cannot restore kustomization back file")
+				}
+				if err := os.Remove(backupFile); err != nil {
+					r.config.Logger.Fatal().Err(err).Msg("cannot remove kustomization back file")
+				}
+			}(fPath)
+
+			if err := os.Remove(fPath); err != nil {
+				return nil, fmt.Errorf("cannot remove original kustomization file: %w", err)
+			}
+			outFile, err := os.Create(fPath)
+			if err != nil {
+				return nil, fmt.Errorf("cannot open: %s - %w", fPath, err)
+			}
+			defer func() {
+				if err := outFile.Close(); err != nil {
+					r.config.Logger.Fatal().Err(err).Msg("cannot close hydrated kustomization file")
+				}
+			}()
+
+			// kustomize root cannot be absolute
+			RelInputFilePath, err := filepath.Rel(filepath.Join(layer, "kustomize"), tmpDir)
+			if err != nil {
+				return nil, fmt.Errorf("cannot find relative path for: %s - %w", tmpDir, err)
+			}
+			variables["beaver.build"] = RelInputFilePath
+
+			if err := hydrate(backupFile, outFile, variables); err != nil {
+				return nil, fmt.Errorf("cannot hidrate: %s - %w", fPath, err)
+			}
+			lastKustomizeFolder = filepath.Join(layer, "kustomize")
+		}
+	}
+
+	// now run customize on the last layer with a kustomize folder
+	if lastKustomizeFolder != "" {
+		// now run customize on the last layer with a kustomize folder
+		kustomizeCmd := cmd.NewCmd(kubectlCmd, []string{"kustomize", lastKustomizeFolder}...)
+		return r.runCommand(tmpDir, "kustomize", kustomizeCmd)
+	}
+
+	return input, nil
+}
+
+func (r *Runner) prepareCmds() (map[string]*cmd.Cmd, error) {
 	// create helm commands
 	// create ytt chart commands
 	cmds := make(map[string]*cmd.Cmd)
 	for name, chart := range r.config.Spec.Charts {
 		args, err := chart.BuildArgs(name, r.config.Namespace)
 		if err != nil {
-			return fmt.Errorf("build: failed to build args %w", err)
+			return nil, fmt.Errorf("build: failed to build args %w", err)
 		}
 		switch chart.Type {
 		case HelmType:
@@ -95,7 +208,7 @@ func (r *Runner) DoBuild(tmpDir, outputDir string) error {
 		case YttType:
 			cmds[name] = cmd.NewCmd(yttCmd, args...)
 		default:
-			return fmt.Errorf("unsupported chart %s type: %q", chart.Path, chart.Type)
+			return nil, fmt.Errorf("unsupported chart %s type: %q", chart.Path, chart.Type)
 		}
 	}
 
@@ -107,96 +220,66 @@ func (r *Runner) DoBuild(tmpDir, outputDir string) error {
 		cmds[name] = c
 	}
 
-	// run commands or print them
-	var compiled []string
-	if r.config.DryRun {
-		for _, cmd := range cmds {
-			r.config.Logger.Info().
-				Str("command", cmd.Name).
-				Str("args", strings.Join(cmd.Args, " ")).
-				Msg("would run command")
-		}
-	} else {
-		for name, cmd := range cmds {
-			stdOut, stdErr, err := RunCMD(cmd)
-			if err != nil {
-				r.config.Logger.Err(err).
-					Str("command", cmd.Name).
-					Str("args", strings.Join(cmd.Args, " ")).
-					Str("sdtout", strings.Join(stdOut, "\n")).
-					Str("stderr", strings.Join(stdErr, "\n")).
-					Msg("failed to run command")
-
-				// TODO: print error to stderr
-				// Error must be pretty printed to end users /!\
-				fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
-				return fmt.Errorf("failed to run command: %w", err)
-			}
-			tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
-			if err != nil {
-				return fmt.Errorf("cannot create compiled file: %w", err)
-			}
-			defer func() {
-				if err := tmpFile.Close(); err != nil {
-					r.config.Logger.
-						Err(err).
-						Str("temp file", tmpFile.Name()).
-						Msg("failed to close temp file")
-				}
-			}()
-			if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
-				return fmt.Errorf("cannot write compiled file: %w", err)
-			}
-			compiled = append(compiled, tmpFile.Name())
-		}
-	}
-
-	// create ytt additional command
-	args := r.config.BuildYttArgs(r.config.Spec.Ytt, compiled)
-
-	yttExtraCmd := cmd.NewCmd(yttCmd, args...)
+	return cmds, nil
+}
+func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error) {
 	if r.config.DryRun {
 		r.config.Logger.Info().
-			Str("command", yttExtraCmd.Name).
-			Str("args", strings.Join(yttExtraCmd.Args, " ")).
+			Str("command", cmd.Name).
+			Str("args", strings.Join(cmd.Args, " ")).
 			Msg("would run command")
-		return nil
+		return nil, nil
 	}
-	stdOut, stdErr, err := RunCMD(yttExtraCmd)
+	stdOut, stdErr, err := RunCMD(cmd)
 	if err != nil {
 		r.config.Logger.Err(err).
-			Str("command", yttExtraCmd.Name).
-			Str("args", strings.Join(yttExtraCmd.Args, " ")).
+			Str("command", cmd.Name).
+			Str("args", strings.Join(cmd.Args, " ")).
 			Str("sdtout", strings.Join(stdOut, "\n")).
 			Str("stderr", strings.Join(stdErr, "\n")).
 			Msg("failed to run command")
 
-		// Error message must be pretty printed to end users
+		// TODO: print error to stderr
+		// Error must be pretty printed to end users /!\
 		fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
-		return fmt.Errorf("failed to run command: %w", err)
+		return nil, fmt.Errorf("failed to run command: %w", err)
 	}
-	tmpFile, err := ioutil.TempFile(tmpDir, "fully-compiled-")
+	tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
 	if err != nil {
-		return fmt.Errorf("cannot create fully compiled file: %w", err)
+		return nil, fmt.Errorf("cannot create compiled file: %w", err)
 	}
 	defer func() {
 		if err := tmpFile.Close(); err != nil {
-			r.config.Logger.Err(err).
-				Str("tmp file", tmpFile.Name()).
+			r.config.Logger.
+				Err(err).
+				Str("temp file", tmpFile.Name()).
 				Msg("failed to close temp file")
 		}
 	}()
 	if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
-		return fmt.Errorf("cannot write full compiled file: %w", err)
+		return nil, fmt.Errorf("cannot write compiled file: %w", err)
 	}
-	if err := CleanDir(outputDir); err != nil {
-		return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
-	}
-	if _, err := YamlSplit(outputDir, tmpFile.Name()); err != nil {
-		return fmt.Errorf("cannot split full compiled file: %w", err)
-	}
+	return tmpFile, nil
+}
 
-	return nil
+func (r *Runner) runCommands(tmpDir string, cmds map[string]*cmd.Cmd) ([]string, error) {
+	var compiled []string
+	for name, cmd := range cmds {
+		f, err := r.runCommand(tmpDir, name, cmd)
+		if err != nil {
+			return nil, err
+		}
+		compiled = append(compiled, f.Name())
+	}
+	return compiled, nil
+}
+
+func (r *Runner) runYtt(tmpDir string, compiled []string) (*os.File, error) {
+	// create ytt additional command
+	args := r.config.BuildYttArgs(r.config.Spec.Ytt, compiled)
+
+	yttExtraCmd := cmd.NewCmd(yttCmd, args...)
+	return r.runCommand(tmpDir, "ytt", yttExtraCmd)
 }
 
 func CleanDir(directory string) error {
@@ -207,6 +290,26 @@ func CleanDir(directory string) error {
 		return fmt.Errorf("cannot create output directory: %w", err)
 	}
 	return nil
+}
+
+func Copy(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return out.Close()
 }
 
 // YamlSplit takes a buildDier and an inputFile.

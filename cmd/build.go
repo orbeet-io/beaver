@@ -30,7 +30,12 @@ func (cmd *BuildCmd) Execute([]string) error {
 
 	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.DirName, cmd.Args.DryRun, cmd.Args.Output)
 
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
+	path, err := os.Getwd()
+	if err != nil {
+		Logger.Fatal().Err(err).Msg("cannot get current working directory")
+	}
+
+	tmpDir, err := os.MkdirTemp(path, ".beaver-")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
