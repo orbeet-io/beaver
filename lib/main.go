@@ -6,14 +6,14 @@ var (
 	buildDate = ""
 )
 
-func GetVersion() string {
+func Version() string {
 	return version
 }
 
-func GetCommitSha() string {
+func CommitSha() string {
 	return commitSha
 }
 
-func GetBuildDate() string {
+func BuildDate() string {
 	return buildDate
 }

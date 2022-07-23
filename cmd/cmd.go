@@ -3,23 +3,22 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/orus-io/go-flags"
-	"github.com/rs/zerolog"
 
 	beaver "orus.io/orus-io/beaver/lib"
+	"orus.io/orus-io/beaver/lib/logging"
 )
 
 var (
-	Version   = beaver.GetVersion()
-	CommitSha = beaver.GetCommitSha()
-	BuildDate = beaver.GetBuildDate()
+	Version   = beaver.Version()
+	CommitSha = beaver.CommitSha()
+	BuildDate = beaver.BuildDate()
 )
 
 var (
-	output = zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	Logger = zerolog.New(output).With().Timestamp().Logger()
+	Logger         = logging.DefaultLogger(os.Stdout)
+	LoggingOptions = logging.MustOptions(logging.NewOptions(&Logger, os.Stdout))
 
 	parser = flags.NewNamedParser("beaver", flags.HelpFlag|flags.PassDoubleDash)
 )

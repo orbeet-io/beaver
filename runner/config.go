@@ -2,7 +2,6 @@ package runner
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/go-yaml/yaml"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 	"github.com/valyala/fasttemplate"
 )
 
@@ -40,7 +38,7 @@ type Arg struct {
 type Create struct {
 	Type string
 	Name string
-	Args []Arg  `yaml:",flow"`
+	Args []Arg `yaml:",flow"`
 }
 
 func (k CmdCreateKey) BuildArgs(namespace string, args []Arg) []string {
@@ -233,9 +231,7 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 func (c *CmdConfig) newConfigFromDir(dir string) (*Config, error) {
 	cfg, err := NewConfig(dir)
 	if err != nil {
-		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
-			return nil, err
-		}
+		return nil, err
 	}
 	return cfg, nil
 }
@@ -369,7 +365,7 @@ func (c *CmdConfig) prepareVariables(doSha bool) (map[string]interface{}, error)
 			if sha.Sha != "" {
 				variables[key] = sha.Sha
 			} else {
-				return nil,  fmt.Errorf("SHA not found for %s", sha.Key)
+				return nil, fmt.Errorf("SHA not found for %s", sha.Key)
 			}
 		} else {
 			variables[key] = fmt.Sprintf("<[sha.%s]>", sha.Key)
@@ -475,9 +471,9 @@ func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []strin
 
 // hydrate expands templated variables in our config with concrete values
 func (c *CmdConfig) hydrate(dirName string, doSha bool) error {
-	variables , err := c.prepareVariables(doSha)
+	variables, err := c.prepareVariables(doSha)
 	if err != nil {
-		return fmt.Errorf("Cannot prepare variables %w", err)
+		return fmt.Errorf("cannot prepare variables %w", err)
 	}
 
 	for key, chart := range c.Spec.Charts {

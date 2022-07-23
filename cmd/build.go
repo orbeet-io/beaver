@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rs/zerolog"
+
+	"orus.io/orus-io/beaver/lib/logging"
 	"orus.io/orus-io/beaver/runner"
 )
 
@@ -16,23 +19,24 @@ type BuildCmd struct {
 	PositionnalArgs struct {
 		DirName string `required:"yes" positional-arg-name:"directory"`
 	} `positional-args:"yes"`
+	log zerolog.Logger `no-flag:"t"`
 }
 
 // NewBuildCmd ...
-func NewBuildCmd() *BuildCmd {
-	cmd := BuildCmd{}
+func NewBuildCmd(loggingOptions *logging.Options) *BuildCmd {
+	cmd := BuildCmd{log: loggingOptions.Logger()}
 	return &cmd
 }
 
 // Execute ...
 func (cmd *BuildCmd) Execute([]string) error {
-	Logger.Info().Str("directory", cmd.PositionnalArgs.DirName).Msg("starting beaver")
+	cmd.log.Debug().Str("directory", cmd.PositionnalArgs.DirName).Msg("starting beaver")
 
-	config := runner.NewCmdConfig(Logger, ".", cmd.PositionnalArgs.DirName, cmd.Args.DryRun, cmd.Args.Output)
+	config := runner.NewCmdConfig(cmd.log, ".", cmd.PositionnalArgs.DirName, cmd.Args.DryRun, cmd.Args.Output)
 
 	path, err := os.Getwd()
 	if err != nil {
-		Logger.Fatal().Err(err).Msg("cannot get current working directory")
+		cmd.log.Fatal().Err(err).Msg("cannot get current working directory")
 	}
 
 	tmpDir, err := os.MkdirTemp(path, ".beaver-")
@@ -42,7 +46,7 @@ func (cmd *BuildCmd) Execute([]string) error {
 	if !cmd.Args.Keep {
 		defer func() {
 			if err := os.RemoveAll(tmpDir); err != nil {
-				Logger.Err(err).Str("tempdir", tmpDir).Msg("failed to remove temp dir")
+				cmd.log.Err(err).Str("tempdir", tmpDir).Msg("failed to remove temp dir")
 			}
 		}()
 	}
@@ -55,9 +59,15 @@ func (cmd *BuildCmd) Execute([]string) error {
 }
 
 func init() {
-	buildCmd := NewBuildCmd()
+	buildCmd := NewBuildCmd(LoggingOptions)
 	_, err := parser.AddCommand("build", "Build new environment", "", buildCmd)
 	if err != nil {
 		Logger.Fatal().Msg(err.Error())
 	}
+
+	g, err := parser.AddGroup("Logging", "Logging options", LoggingOptions)
+	if err != nil {
+		panic(err)
+	}
+	g.Namespace = "log"
 }

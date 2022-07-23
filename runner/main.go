@@ -75,7 +75,7 @@ func (r *Runner) Build(tmpDir string) error {
 			}
 		}()
 		if err := hydrate(inFilePath, outFile, variables); err != nil {
-			return fmt.Errorf("cannot hidrate: %s - %w", outFilePath, err)
+			return fmt.Errorf("cannot hydrate: %s - %w", outFilePath, err)
 		}
 	}
 	return nil
@@ -177,7 +177,7 @@ func (r *Runner) kustomize(tmpDir string, input *os.File) (*os.File, error) {
 			variables["beaver.build"] = RelInputFilePath
 
 			if err := hydrate(backupFile, outFile, variables); err != nil {
-				return nil, fmt.Errorf("cannot hidrate: %s - %w", fPath, err)
+				return nil, fmt.Errorf("cannot hydrate: %s - %w", fPath, err)
 			}
 			lastKustomizeFolder = filepath.Join(layer, "kustomize")
 		}
@@ -239,7 +239,6 @@ func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error)
 			Str("stderr", strings.Join(stdErr, "\n")).
 			Msg("failed to run command")
 
-		// TODO: print error to stderr
 		// Error must be pretty printed to end users /!\
 		fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 		return nil, fmt.Errorf("failed to run command: %w", err)
@@ -312,7 +311,7 @@ func Copy(src, dst string) error {
 	return out.Close()
 }
 
-// YamlSplit takes a buildDier and an inputFile.
+// YamlSplit takes a buildDir and an inputFile.
 // it returns a list of yaml documents and an eventual error
 func YamlSplit(buildDir, inputFile string) ([]string, error) {
 	var docs []string
