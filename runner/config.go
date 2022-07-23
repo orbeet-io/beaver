@@ -138,7 +138,7 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 	dir := absConfigDir
 	dirMap := make(map[string]interface{})
 
-	// otherwise first layer will be present twice
+	// otherwise, first layer will be present twice
 	c.Layers = []string{}
 
 	for weNeedToGoDeeper {
