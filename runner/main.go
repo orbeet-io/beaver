@@ -223,12 +223,24 @@ func (r *Runner) prepareCmds() (map[string]*cmd.Cmd, error) {
 	return cmds, nil
 }
 func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error) {
+	tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
+	if err != nil {
+		return nil, fmt.Errorf("cannot create compiled file: %w", err)
+	}
+	defer func() {
+		if err := tmpFile.Close(); err != nil {
+			r.config.Logger.
+				Err(err).
+				Str("temp file", tmpFile.Name()).
+				Msg("failed to close temp file")
+		}
+	}()
 	if r.config.DryRun {
 		r.config.Logger.Info().
 			Str("command", cmd.Name).
 			Str("args", strings.Join(cmd.Args, " ")).
 			Msg("would run command")
-		return nil, nil
+		return tmpFile, nil
 	}
 	stdOut, stdErr, err := RunCMD(cmd)
 	if err != nil {
@@ -243,18 +255,6 @@ func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error)
 		fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 		return nil, fmt.Errorf("failed to run command: %w", err)
 	}
-	tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
-	if err != nil {
-		return nil, fmt.Errorf("cannot create compiled file: %w", err)
-	}
-	defer func() {
-		if err := tmpFile.Close(); err != nil {
-			r.config.Logger.
-				Err(err).
-				Str("temp file", tmpFile.Name()).
-				Msg("failed to close temp file")
-		}
-	}()
 	if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
 		return nil, fmt.Errorf("cannot write compiled file: %w", err)
 	}
