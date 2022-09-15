@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/go-yaml/yaml"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasttemplate"
+	"gopkg.in/yaml.v3"
 )
 
 // Variable ...

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-cmd/cmd"
-	"gopkg.in/yaml.v3"
+	"github.com/go-yaml/yaml"
 )
 
 var (
@@ -222,25 +222,19 @@ func (r *Runner) prepareCmds() (map[string]*cmd.Cmd, error) {
 
 	return cmds, nil
 }
+
 func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error) {
-	tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
-	if err != nil {
-		return nil, fmt.Errorf("cannot create compiled file: %w", err)
-	}
-	defer func() {
-		if err := tmpFile.Close(); err != nil {
-			r.config.Logger.
-				Err(err).
-				Str("temp file", tmpFile.Name()).
-				Msg("failed to close temp file")
-		}
-	}()
+	r.config.Logger.Info().
+		Str("command", cmd.Name).
+		Str("args", strings.Join(cmd.Args, " ")).
+		Msg("will run command")
+
 	if r.config.DryRun {
 		r.config.Logger.Info().
 			Str("command", cmd.Name).
 			Str("args", strings.Join(cmd.Args, " ")).
 			Msg("would run command")
-		return tmpFile, nil
+		return nil, nil
 	}
 	stdOut, stdErr, err := RunCMD(cmd)
 	if err != nil {
@@ -255,6 +249,18 @@ func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error)
 		fmt.Printf("\n%s\n\n", strings.Join(stdErr, "\n"))
 		return nil, fmt.Errorf("failed to run command: %w", err)
 	}
+	tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
+	if err != nil {
+		return nil, fmt.Errorf("cannot create compiled file: %w", err)
+	}
+	defer func() {
+		if err := tmpFile.Close(); err != nil {
+			r.config.Logger.
+				Err(err).
+				Str("temp file", tmpFile.Name()).
+				Msg("failed to close temp file")
+		}
+	}()
 	if _, err := tmpFile.WriteString(strings.Join(stdOut, "\n")); err != nil {
 		return nil, fmt.Errorf("cannot write compiled file: %w", err)
 	}
@@ -332,33 +338,25 @@ func YamlSplit(buildDir, inputFile string) ([]string, error) {
 		if !ok {
 			return nil, fmt.Errorf("kind missing from: %+v", resource)
 		}
-		metadata, ok := resource["metadata"].(map[string]interface{})
+		metadata, ok := resource["metadata"].(map[interface{}]interface{})
 		if !ok {
 			return nil, fmt.Errorf("fail to type assert metadata from: %+v", resource)
 		}
-		name, ok := metadata["name"]
+		name, ok := metadata["name"].(string)
 		if !ok {
-			return nil, fmt.Errorf("fail to type get metadata.name from: %+v", resource)
+			return nil, fmt.Errorf("fail to type assert metadata.name from: %+v", resource)
 		}
 		filename := fmt.Sprintf("%s.%s.%s.yaml", kind, strings.ReplaceAll(apiVersion, "/", "_"), name)
 		fPath := filepath.Join(buildDir, filename)
 
-		buf := new(bytes.Buffer)
-		encoder := yaml.NewEncoder(buf)
-		encoder.SetIndent(2)
-		if err := encoder.Encode(resource); err != nil {
-			return nil, fmt.Errorf("cannot encode resource: %+v, %w", resource, err)
+		out, err := yaml.Marshal(resource)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal resource: %w", err)
 		}
-		/*
-			out, err := yaml.Marshal(resource)
-			if err != nil {
-				return nil, fmt.Errorf("cannot marshal resource: %w", err)
-			}
-		*/
 		if err := os.MkdirAll(buildDir, defaultDirMod); err != nil {
 			return nil, fmt.Errorf("cannot create build directory: %w", err)
 		}
-		content := append([]byte("---\n"), buf.Bytes()...)
+		content := append([]byte("---\n"), out...)
 		if err := os.WriteFile(fPath, content, defaultFileMod); err != nil {
 			return nil, fmt.Errorf("cannot write resource: %w", err)
 		}

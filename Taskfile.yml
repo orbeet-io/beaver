@@ -74,11 +74,22 @@ tasks:
     generates:
       - "{{.GOLANGCI_LINT_BIN}}"
 
+  fetch-govulncheck:
+    desc: fetch govulncheck
+    cmds:
+      - go install golang.org/x/vuln/cmd/govulncheck@latest
+
   lint:
     desc: lint our golang code to make sure we catch as much errors as possible
     deps: [fetch-golangci-lint]
     cmds:
       - "{{.GOLANGCI_LINT_BIN}} run {{.GOLANGCI_LINT_ARGS}}"
+
+  vulncheck:
+    desc: search for known vulnerabilities in our code and our libraries
+    deps: [fetch-govulncheck]
+    cmds:
+      - "govulncheck ./..."
 
   test:
     desc: Run the tests

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-yaml/yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"orus.io/orus-io/beaver/runner"
 	"orus.io/orus-io/beaver/testutils"
@@ -120,7 +120,7 @@ func TestSha(t *testing.T) {
 	require.NoError(t, r.Build(tmpDir))
 
 	configMap := filepath.Join(buildDir, "ConfigMap.v1.demo.yaml")
-	cm,  err := parseFile(configMap)
+	cm, err := parseFile(configMap)
 	require.NoError(t, err)
 	sha, err := getLabel(cm, "mysha")
 	require.NoError(t, err)
@@ -135,13 +135,13 @@ func TestSha(t *testing.T) {
 }
 
 func getLabel(resource map[string]interface{}, label string) (string, error) {
-	metadata, ok := resource["metadata"].(map[interface{}]interface{})
+	metadata, ok := resource["metadata"].(map[string]interface{})
 	if !ok {
-		return "", fmt.Errorf("fail to get label: metadata")
+		return "", fmt.Errorf("fail to get label: metadata on %+v", resource["metadata"])
 	}
-	labels, ok := metadata["labels"].(map[interface{}]interface{})
+	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
-		return "", fmt.Errorf("fail to get label: labels")
+		return "", fmt.Errorf("fail to get label: labels on %+v", metadata["labels"])
 	}
 	result, ok := labels[label].(string)
 	if !ok {

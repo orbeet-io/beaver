@@ -84,15 +84,15 @@ func TestCmdConfig(t *testing.T) {
 
 func getEnvVars(resource map[string]interface{}) (map[string]string, error) {
 	result := make(map[string]string)
-	spec, ok := resource["spec"].(map[interface{}]interface{})
+	spec, ok := resource["spec"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("fail to env var: spec")
 	}
-	template, ok := spec["template"].(map[interface{}]interface{})
+	template, ok := spec["template"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("fail to env var: template")
 	}
-	containersSpec, ok := template["spec"].(map[interface{}]interface{})
+	containersSpec, ok := template["spec"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("fail to env var: containersSpec")
 	}
@@ -100,7 +100,7 @@ func getEnvVars(resource map[string]interface{}) (map[string]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("fail to env var: containers")
 	}
-	container, ok := containers[0].(map[interface{}]interface{})
+	container, ok := containers[0].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("fail to env var: container")
 	}
@@ -109,7 +109,7 @@ func getEnvVars(resource map[string]interface{}) (map[string]string, error) {
 		return nil, fmt.Errorf("fail to env var: env")
 	}
 	for _, item := range env {
-		e, ok := item.(map[interface{}]interface{})
+		e, ok := item.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("fail to env var: env var: %v", item)
 		}
