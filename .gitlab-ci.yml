@@ -2,6 +2,7 @@
 stages:
   - test
   - lint
+  - vulncheck
   - build
   - upload
 
@@ -52,6 +53,19 @@ lint:
       - tools/bin
   script:
     - GOLANGCI_LINT_ARGS="-j 4" GOLANGCI_LINT_CACHE=$CI_PROJECT_DIR/.gopath/golangci-cache tools/bin/task lint
+
+vulncheck:
+  stage: vulncheck
+  image: quay.orus.io/cc/golang:1.17.6
+  cache:
+    key: tooling
+    paths:
+      - .gopath/pkg/mod
+      - .gopath/golangci-cache
+      - .cache/gocache
+      - tools/bin
+  script:
+    - tools/bin/task vulncheck
 
 build:
   stage: build
