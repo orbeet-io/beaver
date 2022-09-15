@@ -8,7 +8,7 @@ stages:
 
 unit_tests:
   stage: test
-  image: quay.orus.io/cc/golang:1.18.4
+  image: quay.orus.io/cc/golang:1.19.1
   variables:
     YTT_VERSION: v0.41.1
     YTT_SHA256: 65dbc4f3a4a2ed84296dd1b323e8e7bd77e488fa7540d12dd36cf7fb2fc77c03
@@ -43,7 +43,7 @@ unit_tests:
 
 lint:
   stage: lint
-  image: quay.orus.io/cc/golang:1.18.4
+  image: quay.orus.io/cc/golang:1.19.1
   cache:
     key: tooling
     paths:
@@ -56,7 +56,7 @@ lint:
 
 vulncheck:
   stage: vulncheck
-  image: quay.orus.io/cc/golang:1.18.4
+  image: quay.orus.io/cc/golang:1.19.1
   cache:
     key: tooling
     paths:
@@ -69,7 +69,7 @@ vulncheck:
 
 build:
   stage: build
-  image: quay.orus.io/cc/golang:1.18.4
+  image: quay.orus.io/cc/golang:1.19.1
   artifacts:
     paths:
       - build

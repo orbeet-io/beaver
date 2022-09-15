@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,7 +92,7 @@ func NewConfig(configDir string) (*Config, error) {
 		if err != nil || configInfo.IsDir() {
 			continue
 		}
-		configFile, err := ioutil.ReadFile(configPath)
+		configFile, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("fail to read config file: %s - %w", configPath, err)
 		}
@@ -424,7 +423,7 @@ func findYaml(layers []string, name string) []string {
 }
 
 func hydrate(input string, output *os.File, variables map[string]interface{}) error {
-	byteTemplate, err := ioutil.ReadFile(input)
+	byteTemplate, err := os.ReadFile(input)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %w", input, err)
 	}
@@ -454,7 +453,7 @@ func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []strin
 		}
 
 		ext := filepath.Ext(path)
-		tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s-*%s", strings.TrimSuffix(filepath.Base(path), ext), ext))
+		tmpFile, err := os.CreateTemp(tmpDir, fmt.Sprintf("%s-*%s", strings.TrimSuffix(filepath.Base(path), ext), ext))
 		if err != nil {
 			return nil, fmt.Errorf("hydrateFiles failed to create tempfile: %w", err)
 		}

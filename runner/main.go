@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,7 +50,7 @@ func (r *Runner) Build(tmpDir string) error {
 	if err := r.config.SetShas(preBuildDir); err != nil {
 		return fmt.Errorf("failed to set SHAs: %w", err)
 	}
-	files, err := ioutil.ReadDir(preBuildDir)
+	files, err := os.ReadDir(preBuildDir)
 	if err != nil {
 		return fmt.Errorf("cannot list directory: %s - %w", preBuildDir, err)
 	}
@@ -223,7 +222,7 @@ func (r *Runner) prepareCmds() (map[string]*cmd.Cmd, error) {
 	return cmds, nil
 }
 func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error) {
-	tmpFile, err := ioutil.TempFile(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
+	tmpFile, err := os.CreateTemp(tmpDir, fmt.Sprintf("compiled-%s-*.yaml", name))
 	if err != nil {
 		return nil, fmt.Errorf("cannot create compiled file: %w", err)
 	}
