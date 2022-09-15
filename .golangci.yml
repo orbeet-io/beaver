@@ -5,16 +5,16 @@ linters:
   disable-all: true
   enable:
     # enable by default linters
-    - deadcode
+    #- deadcode (replaced by unused)
     - errcheck
     - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - structcheck
+    #- structcheck (replaced by unused)
     - typecheck
     - unused
-    - varcheck
+    #- varcheck (replaced by unused)
 
     # extra linters
     - asciicheck  # Simple linter to check that your code does not contain non-ASCII identifiers
@@ -67,7 +67,7 @@ linters:
     # - gomodguard  # Allow and block list linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations.	style, import, module		v1.25.0
     # - goprintffuncname  # Checks that printf-like functions are named with f at the end	style		v1.23.0
     - gosec  # Inspects source code for security problems	bugs		v1.0.0
-    - ifshort  # Checks that your code uses short syntax for if-statements whenever possible	style		v1.36.0
+    # - ifshort  # Checks that your code uses short syntax for if-statements whenever possible	style		v1.36.0 (deprecated since 1.48)
     # - importas  # Enforces consistent import aliases	style		v1.38.0
     # - interfacer ⚠  # The repository of the linter has been archived by the owner.	style		v1.0.0
     # - ireturn  # Accept Interfaces, Return Concrete Types	style		v1.43.0
