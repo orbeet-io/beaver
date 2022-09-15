@@ -324,9 +324,13 @@ func YamlSplit(buildDir, inputFile string) ([]string, error) {
 		return nil, err
 	}
 	for _, resource := range allResources {
-		apiVersion, ok := resource["apiVersion"].(string)
+		apiVersionData, ok := resource["apiVersion"]
 		if !ok {
-			return nil, fmt.Errorf("fail to type assert apiVersion from: %+v", resource)
+			return nil, fmt.Errorf("apiVersion not present in resource: %+v", resource)
+		}
+		apiVersion, ok := apiVersionData.(string)
+		if !ok {
+			return nil, fmt.Errorf("failed to type assert apiVersion to string from: %+v", apiVersionData)
 		}
 		kind, ok := resource["kind"].(string)
 		if !ok {
