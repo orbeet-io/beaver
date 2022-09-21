@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -16,7 +17,7 @@ import (
 // Variable ...
 type Variable struct {
 	Name  string
-	Value string
+	Value interface{}
 }
 
 type Sha struct {
@@ -422,22 +423,137 @@ func findYaml(layers []string, name string) []string {
 	return files
 }
 
+func hydrateString(input string, output io.Writer, variables map[string]interface{}) error {
+	t, err := fasttemplate.NewTemplate(input, "<[", "]>")
+	if err != nil {
+		return fmt.Errorf("unexpected error when parsing template: %w", err)
+	}
+	s, err := t.ExecuteFuncStringWithErr(func(w io.Writer, tag string) (int, error) {
+		val, ok := variables[tag]
+		if !ok {
+			return 0, fmt.Errorf("tag not found: %s", tag)
+		}
+		switch v := val.(type) {
+		case string:
+			return w.Write([]byte(v))
+		default:
+			e := yaml.NewEncoder(w)
+			err := e.Encode(val)
+			return 0, err
+		}
+	})
+	if err != nil {
+		return err
+	}
+	if _, err := output.Write([]byte(s)); err != nil {
+		return fmt.Errorf("failed to template: %w", err)
+	}
+	return nil
+}
+
+func hydrateScalarNode(node *yaml.Node, variables map[string]interface{}) error {
+	input := node.Value
+	var output interface{}
+
+	if strings.HasPrefix(input, "<[") && strings.HasSuffix(input, "]>") {
+		tag := strings.Trim(input, "<[]>")
+		var ok bool
+		output, ok = variables[tag]
+		if !ok {
+			return fmt.Errorf("tag not found: %s", tag)
+		}
+	} else {
+		buf := bytes.NewBufferString("")
+		if err := hydrateString(input, buf, variables); err != nil {
+			return err
+		}
+		output = buf.String()
+	}
+	// preserve comments
+	hc := node.HeadComment
+	lc := node.LineComment
+	fc := node.FootComment
+	if err := node.Encode(output); err != nil {
+		return err
+	}
+	node.HeadComment = hc
+	node.LineComment = lc
+	node.FootComment = fc
+	return nil
+}
+
+func hydrateYamlNodes(nodes []*yaml.Node, variables map[string]interface{}) error {
+	for _, node := range nodes {
+		if node.Kind == yaml.ScalarNode {
+			if err := hydrateScalarNode(node, variables); err != nil {
+				return fmt.Errorf("failed to parse scalar: %w", err)
+			}
+		} else {
+			if err := hydrateYamlNodes(node.Content, variables); err != nil {
+				return fmt.Errorf("failed to hydrate content: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func hydrateYaml(root *yaml.Node, variables map[string]interface{}) error {
+	err := hydrateYamlNodes(root.Content, variables)
+	return err
+}
+
+func Hydrate(input []byte, output io.Writer, variables map[string]interface{}) error {
+
+	documents := bytes.Split(input, []byte("---\n"))
+	// yaml lib ignore leading '---'
+	// see: https://github.com/go-yaml/yaml/issues/749
+	// which is an issue for ytt value files
+	// this is why we loop over documents in the same file
+	for i, doc := range documents {
+
+		var node yaml.Node
+		if err := yaml.Unmarshal(doc, &node); err != nil || len(node.Content) == 0 {
+			// not a yaml template, fallback to raw template method
+			// ...maybe a ytt header or a frontmatter
+			template := string(doc)
+			if err := hydrateString(template, output, variables); err != nil {
+				return err
+			}
+		} else {
+
+			// FIXME: do not call this method when hydrating only for sha,
+			// could be quite expensive
+
+			// yaml template method
+			err := hydrateYaml(&node, variables)
+			if err != nil {
+				return fmt.Errorf("failed to hydrate yaml: %w", err)
+			}
+			o, err := yaml.Marshal(node.Content[0])
+			if err != nil {
+				return fmt.Errorf("failed to marshal yaml: %w", err)
+			}
+			_, err = output.Write(o)
+			if err != nil {
+				return err
+			}
+		}
+		if i != len(documents)-1 {
+			_, err := output.Write([]byte("---\n"))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func hydrate(input string, output *os.File, variables map[string]interface{}) error {
 	byteTemplate, err := os.ReadFile(input)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %w", input, err)
 	}
-	template := string(byteTemplate)
-
-	t, err := fasttemplate.NewTemplate(template, "<[", "]>")
-	if err != nil {
-		return fmt.Errorf("unexpected error when parsing template: %w", err)
-	}
-	s := t.ExecuteString(variables)
-	if _, err := output.Write([]byte(s)); err != nil {
-		return fmt.Errorf("failed to template for %s: %w", output.Name(), err)
-	}
-	return nil
+	return Hydrate(byteTemplate, output, variables)
 }
 
 func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []string) ([]string, error) {

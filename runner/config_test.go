@@ -30,6 +30,47 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "../vendor/ytt/odoo", config.Charts["odoo"].Path)
 }
 
+func TestHydrate(t *testing.T) {
+	rawVariables := []byte(`
+#@data/values
+---
+foo: |
+    a multi
+    line string
+bar:
+    simple: interface
+    with:
+        - some
+        - content
+baz: |
+    only one line in multiline mode
+boo: a simple joke line
+`)
+	variables := make(map[string]interface{})
+
+	byteContent := bytes.NewReader(rawVariables)
+	decoder := yaml.NewDecoder(byteContent)
+
+	require.NoError(t, decoder.Decode(&variables))
+	input := `
+#@data/values
+---
+foo: <[foo]>
+bar: <[bar]>
+baz: <[baz]>
+boo: <[boo]>
+`
+
+	buf := bytes.NewBufferString("")
+	require.NoError(t, runner.Hydrate([]byte(input), buf, variables))
+	assert.Equal(
+		t,
+		string(rawVariables),
+		buf.String(),
+	)
+
+}
+
 func TestYttBuildArgs(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	testNS := "environments/ns1"
@@ -100,7 +141,7 @@ func TestCreateConfig(t *testing.T) {
 }
 
 func TestSha(t *testing.T) {
-	shaValue := "2145bea9e32804c65d960e6d4af1c87f95ccc39fad7df5eec2f3925a193112ab"
+	shaValue := "33935340f50ff18c3837c8cf42a423f6be96df7886723a3994a6018b0cc97e01"
 	buildDir := filepath.Join(shaFixtures, "build", "example")
 	defer func() {
 		require.NoError(t, runner.CleanDir(buildDir))
