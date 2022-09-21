@@ -197,6 +197,9 @@ func (r *Runner) prepareCmds() (map[string]*cmd.Cmd, error) {
 	// create ytt chart commands
 	cmds := make(map[string]*cmd.Cmd)
 	for name, chart := range r.config.Spec.Charts {
+		if chart.Disabled {
+			continue
+		}
 		args, err := chart.BuildArgs(name, r.config.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("build: failed to build args %w", err)

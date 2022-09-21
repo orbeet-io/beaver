@@ -26,9 +26,10 @@ type Sha struct {
 }
 
 type Chart struct {
-	Type string
-	Path string
-	Name string
+	Type     string
+	Path     string
+	Name     string
+	Disabled bool
 }
 
 type Arg struct {
@@ -347,6 +348,7 @@ type CmdChart struct {
 	Type            string
 	Path            string
 	Name            string
+	Disabled        bool
 	ValuesFileNames []string
 }
 
@@ -386,6 +388,7 @@ func cmdChartFromChart(c Chart) CmdChart {
 		Type:            c.Type,
 		Path:            c.Path,
 		Name:            c.Name,
+		Disabled:        c.Disabled,
 		ValuesFileNames: nil,
 	}
 }
