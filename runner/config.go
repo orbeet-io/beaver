@@ -28,6 +28,7 @@ type Sha struct {
 type Chart struct {
 	Type string
 	Path string
+	Name string
 }
 
 type Arg struct {
@@ -318,6 +319,7 @@ type CmdCharts map[string]CmdChart
 type CmdChart struct {
 	Type            string
 	Path            string
+	Name            string
 	ValuesFileNames []string
 }
 
@@ -328,12 +330,19 @@ const (
 
 // BuildArgs is in charge of producing the argument list to be provided
 // to the cmd
-func (c CmdChart) BuildArgs(name, namespace string) ([]string, error) {
+func (c CmdChart) BuildArgs(n, namespace string) ([]string, error) {
+	var name string
 	var args []string
+	if c.Name != "" {
+		name = c.Name
+	} else {
+		name = n
+	}
 	switch c.Type {
 	case HelmType:
 		// helm template name vendor/helm/mychart/ --namespace ns1 -f base.values.yaml -f ns.yaml -f ns.values.yaml
 		args = append(args, "template", name, c.Path, "--namespace", namespace)
+
 	case YttType:
 		args = append(args, "-f", c.Path)
 	default:
@@ -349,6 +358,7 @@ func cmdChartFromChart(c Chart) CmdChart {
 	return CmdChart{
 		Type:            c.Type,
 		Path:            c.Path,
+		Name:            c.Name,
 		ValuesFileNames: nil,
 	}
 }
