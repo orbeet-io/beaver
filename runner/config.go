@@ -61,6 +61,7 @@ func (k CmdCreateKey) BuildArgs(namespace string, args []Arg) []string {
 type Config struct {
 	Inherit   string
 	NameSpace string
+	Inherits  []string         `yaml:",flow"`
 	Variables []Variable       `yaml:",flow"`
 	Sha       []Sha            `yaml:",flow"`
 	Charts    map[string]Chart `yaml:",flow"`
@@ -127,8 +128,7 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		return fmt.Errorf("you must only have one layer when calling Initialize, found: %d", len(c.Layers))
 	}
 	var (
-		weNeedToGoDeeper = true
-		configLayers     []*Config
+		configLayers []*Config
 	)
 
 	resolvedConfigDir := filepath.Join(c.RootDir, c.Layers[0])
@@ -136,61 +136,25 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to find abs() for %s: %w", resolvedConfigDir, err)
 	}
-	dir := absConfigDir
+	dirs := []string{absConfigDir}
 	dirMap := make(map[string]interface{})
 
 	// otherwise, first layer will be present twice
 	c.Layers = []string{}
 
-	for weNeedToGoDeeper {
-		// guard against recursive inherit loops
-		_, present := dirMap[dir]
-		if present {
-			var dirList []string
-			for k := range dirMap {
-				dirList = append(dirList, k)
-			}
-			return fmt.Errorf("recursive inherit loop detected: dirs %s->%s", strings.Join(dirList, "->"), dir)
-		}
-
-		config, err := c.newConfigFromDir(dir)
-		if err != nil {
-			return fmt.Errorf("failed to create config from %s: %w", dir, err)
-		}
-		if config == nil {
-			if len(c.Layers) == 1 {
-				return fmt.Errorf("beaver file not found in directory: %s", dir)
-			}
-			continue
-		}
-		config.Dir = dir
-		if err := config.Absolutize(dir); err != nil {
-			return fmt.Errorf("failed to absolutize config from dir: %s, %w", dir, err)
-		}
-		// first config dir must return a real config...
-		// others can be skipped
-		if config == nil && len(configLayers) == 0 {
-			return fmt.Errorf("failed to find config in dir: %s", dir)
-		}
-
-		absDir, err := filepath.Abs(dir)
-		if err != nil {
-			return fmt.Errorf("failed to find abs() for %s: %w", dir, err)
-		}
-
-		c.Layers = append(c.Layers, absDir)
-		configLayers = append(configLayers, config)
-
-		if config == nil || config.Inherit == "" {
-			weNeedToGoDeeper = false
-		} else {
-			resolvedDir := filepath.Join(absDir, config.Inherit)
-			newDir, err := filepath.Abs(resolvedDir)
+	for len(dirs) > 0 {
+		var newDirs []string
+		for _, dir := range dirs {
+			dirs, cl, err := c.addConfDir(dir, dirMap, configLayers)
 			if err != nil {
-				return fmt.Errorf("failed to find abs() for %s: %w", resolvedDir, err)
+				return err
 			}
-			dir = newDir
+			configLayers = cl
+			for _, dir := range dirs {
+				newDirs = append(newDirs, dir)
+			}
 		}
+		dirs = newDirs
 	}
 
 	// reverse our layers list
@@ -227,6 +191,69 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		return fmt.Errorf("failed to hydrate tmpDir (%s): %w", tmpDir, err)
 	}
 	return nil
+}
+
+func (c *CmdConfig) addConfDir(dir string, dirMap map[string]interface{}, configLayers []*Config) ([]string, []*Config, error) {
+	// guard against recursive inherit loops
+	_, present := dirMap[dir]
+	if present {
+		var dirList []string
+		for k := range dirMap {
+			dirList = append(dirList, k)
+		}
+		return nil, configLayers, fmt.Errorf("recursive inherit loop detected: dirs %s->%s", strings.Join(dirList, "->"), dir)
+	}
+
+	config, err := c.newConfigFromDir(dir)
+	if err != nil {
+		return nil, configLayers, fmt.Errorf("failed to create config from %s: %w", dir, err)
+	}
+	if config == nil {
+		if len(c.Layers) == 1 {
+			return nil, configLayers, fmt.Errorf("beaver file not found in directory: %s", dir)
+		}
+		return nil, configLayers, nil
+	}
+	config.Dir = dir
+	if err := config.Absolutize(dir); err != nil {
+		return nil, configLayers, fmt.Errorf("failed to absolutize config from dir: %s, %w", dir, err)
+	}
+	// first config dir must return a real config...
+	// others can be skipped
+	if config == nil && len(configLayers) == 0 {
+		return nil, configLayers, fmt.Errorf("failed to find config in dir: %s", dir)
+	}
+
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, configLayers, fmt.Errorf("failed to find abs() for %s: %w", dir, err)
+	}
+
+	c.Layers = append(c.Layers, absDir)
+	configLayers = append(configLayers, config)
+
+	if config == nil || (len(config.Inherits) == 0 && config.Inherit == "") {
+		// weNeedToGoDeeper = false
+		return nil, configLayers, nil
+	}
+	var newDirs []string
+	for _, inherit := range config.Inherits {
+		resolvedDir := filepath.Join(absDir, inherit)
+		newDir, err := filepath.Abs(resolvedDir)
+		if err != nil {
+			return nil, configLayers, fmt.Errorf("failed to find abs() for %s: %w", resolvedDir, err)
+		}
+		newDirs = append(newDirs, newDir)
+	}
+	if config.Inherit != "" {
+		resolvedDir := filepath.Join(absDir, config.Inherit)
+		newDir, err := filepath.Abs(resolvedDir)
+		if err != nil {
+			return nil, configLayers, fmt.Errorf("failed to find abs() for %s: %w", resolvedDir, err)
+		}
+		newDirs = append(newDirs, newDir)
+	}
+	return newDirs, configLayers, nil
 }
 
 func (c *CmdConfig) newConfigFromDir(dir string) (*Config, error) {
