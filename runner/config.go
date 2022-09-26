@@ -261,11 +261,11 @@ type CmdConfig struct {
 	Output    string
 }
 
-func (c CmdConfig) HasShas() bool {
+func (c *CmdConfig) HasShas() bool {
 	return len(c.Spec.Shas) > 0
 }
 
-func (c CmdConfig) SetShas(buildDir string) error {
+func (c *CmdConfig) SetShas(buildDir string) error {
 	for _, sha := range c.Spec.Shas {
 		if err := sha.SetSha(buildDir); err != nil {
 			return err
@@ -299,7 +299,7 @@ type CmdSpec struct {
 
 type Ytt []string
 
-func (c CmdConfig) BuildYttArgs(paths, compiled []string) []string {
+func (c *CmdConfig) BuildYttArgs(paths, compiled []string) []string {
 	// ytt -f $chartsTmpFile --file-mark "$(basename $chartsTmpFile):type=yaml-plain"\
 	//   -f base/ytt/ -f base/ytt.yml -f ns1/ytt/ -f ns1/ytt.yml
 	var args []string
