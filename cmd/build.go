@@ -16,7 +16,7 @@ type BuildCmd struct {
 		Keep   bool   `short:"k" long:"keep" descriptions:"Keep the temporary files"`
 		Output string `short:"o" long:"output" descriptions:"output directory"`
 	}
-	PositionnalArgs struct {
+	PositionalArgs struct {
 		DirName string `required:"yes" positional-arg-name:"directory"`
 	} `positional-args:"yes"`
 	log zerolog.Logger `no-flag:"t"`
@@ -30,9 +30,9 @@ func NewBuildCmd(loggingOptions *logging.Options) *BuildCmd {
 
 // Execute ...
 func (cmd *BuildCmd) Execute([]string) error {
-	cmd.log.Debug().Str("directory", cmd.PositionnalArgs.DirName).Msg("starting beaver")
+	cmd.log.Debug().Str("directory", cmd.PositionalArgs.DirName).Msg("starting beaver")
 
-	config := runner.NewCmdConfig(cmd.log, ".", cmd.PositionnalArgs.DirName, cmd.Args.DryRun, cmd.Args.Output)
+	config := runner.NewCmdConfig(cmd.log, ".", cmd.PositionalArgs.DirName, cmd.Args.DryRun, cmd.Args.Output)
 
 	path, err := os.Getwd()
 	if err != nil {
