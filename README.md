@@ -19,6 +19,7 @@
 	- [helm](https://helm.sh/)
 	- [ytt](https://carvel.dev/ytt/)
 	- [kubectl create](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create)
+    - [kustomize](https://kustomize.io)
 - patch engine:
 	- [ytt overlay](https://carvel.dev/ytt/docs/v0.39.0/ytt-overlays/)
 - multi environment variables
@@ -45,11 +46,15 @@ A `beaver` project consists of a folder with a `beaver` config file,  either `be
 namespace: default
 # an inherited beaver project - which can also inherit another beaver project
 inherit: ../../base  # path is relative to this beaver config file
+inherits:
+- ../../base1
+- ../../base2
 # your project charts
 charts:
   postgres:                           # your chart local name
     type: helm                        # can be either helm or ytt
     path: ../.vendor/helm/postgresql  # path to your chart - relative to this file
+    name: pgsql                       # overwrite **helm** application name
 # beaver variables that can be used inside your charts value files
 variables:
 - name: tag      # give your variable a name
@@ -231,4 +236,32 @@ some files inside it.
 
 ```sh
 kubectl create configmap xbus-pipelines --from-file pipelines
+```
+
+## Kustomize
+
+To use `kustomize` create a `kustomize` folder inside your beaver project and
+use `kustomize` as usual.
+
+A special beaver variable is available in your `kustomization.yaml` file:
+`<[beaver.build]>` which exposes your beaver build temp directory, so you can
+kustomize your previous builds (helm, ytt, etc.).
+
+example:
+
+```
+# folder structure
+.
+└── base
+    ├── beaver.yml
+    └── kustomize
+        └── kustomization.yaml
+```
+
+```yaml
+resources:  # was previously named `bases`
+- <[beaver.build]>
+# now kustomize as usual
+patches:
+- myPatch.yaml
 ```
