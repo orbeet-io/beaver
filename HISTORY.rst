@@ -2,6 +2,14 @@
 HISTORY
 *******
 
+- multiple inherit support for beaver files
+- can now disable a chart
+- support to rename a chart in the beaver definition with the `name` key
+  allowing to use `-` in produced names
+- hydrate function now allows for non string variables in beaver variables
+- move to go1.19+ to fix some CVEs
+- added govulncheck to our ci toolchain
+
 3.1.4 (2022-09-15)
 ==================
 
