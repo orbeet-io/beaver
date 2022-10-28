@@ -261,7 +261,7 @@ example:
 ```yaml
 resources:  # was previously named `bases`
 - <[beaver.build]>
-# now kustomize as usual
+# now kustomize as usual.
 patches:
 - myPatch.yaml
 ```
