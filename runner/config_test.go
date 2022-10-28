@@ -71,7 +71,6 @@ voo: <[voo]>
 		string(rawVariables),
 		buf.String(),
 	)
-
 }
 
 func TestHydrateSideEffect(t *testing.T) {
@@ -103,7 +102,6 @@ replicas: 1
 		expected,
 		buf.String(),
 	)
-
 }
 
 func TestYttBuildArgs(t *testing.T) {

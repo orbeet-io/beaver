@@ -151,9 +151,7 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 				return err
 			}
 			configLayers = cl
-			for _, dir := range dirs {
-				newDirs = append(newDirs, dir)
-			}
+			newDirs = append(newDirs, dirs...)
 		}
 		dirs = newDirs
 	}
@@ -542,14 +540,12 @@ func hydrateYaml(root *yaml.Node, variables map[string]interface{}) error {
 }
 
 func Hydrate(input []byte, output io.Writer, variables map[string]interface{}) error {
-
 	documents := bytes.Split(input, []byte("---\n"))
 	// yaml lib ignore leading '---'
 	// see: https://github.com/go-yaml/yaml/issues/749
 	// which is an issue for ytt value files
 	// this is why we loop over documents in the same file
 	for i, doc := range documents {
-
 		var node yaml.Node
 		if err := yaml.Unmarshal(doc, &node); err != nil || len(node.Content) == 0 {
 			// not a yaml template, fallback to raw template method
@@ -559,7 +555,6 @@ func Hydrate(input []byte, output io.Writer, variables map[string]interface{}) e
 				return err
 			}
 		} else {
-
 			// FIXME: do not call this method when hydrating only for sha,
 			// could be quite expensive
 
