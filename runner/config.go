@@ -588,7 +588,7 @@ func Hydrate(input []byte, output io.Writer, variables map[string]interface{}) e
 	return nil
 }
 
-func hydrate(input string, output *os.File, variables map[string]interface{}) error {
+func hydrate(input string, output io.Writer, variables map[string]interface{}) error {
 	byteTemplate, err := os.ReadFile(input)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %w", input, err)

@@ -38,6 +38,7 @@ foo: |
     a multi
     line string
 bar:
+    port: 5432
     simple: interface
     with:
         - some
@@ -45,6 +46,7 @@ bar:
 baz: |
     only one line in multiline mode
 boo: a simple joke line
+voo: 33
 `)
 	variables := make(map[string]interface{})
 
@@ -59,6 +61,7 @@ foo: <[foo]>
 bar: <[bar]>
 baz: <[baz]>
 boo: <[boo]>
+voo: <[voo]>
 `
 
 	buf := bytes.NewBufferString("")
