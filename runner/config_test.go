@@ -176,7 +176,7 @@ func TestCreateConfig(t *testing.T) {
 }
 
 func TestSha(t *testing.T) {
-	shaValue := "33935340f50ff18c3837c8cf42a423f6be96df7886723a3994a6018b0cc97e01"
+	shaValue := "2145bea9e32804c65d960e6d4af1c87f95ccc39fad7df5eec2f3925a193112ab"
 	buildDir := filepath.Join(shaFixtures, "build", "example")
 	defer func() {
 		require.NoError(t, runner.CleanDir(buildDir))

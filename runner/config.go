@@ -493,32 +493,31 @@ func hydrateString(input string, output io.Writer, variables map[string]interfac
 
 func hydrateScalarNode(node *yaml.Node, variables map[string]interface{}) error {
 	input := node.Value
-	var output interface{}
 
 	if strings.HasPrefix(input, "<[") && strings.HasSuffix(input, "]>") {
 		tag := strings.Trim(input, "<[]>")
 		var ok bool
-		output, ok = variables[tag]
+		output, ok := variables[tag]
 		if !ok {
 			return fmt.Errorf("tag not found: %s", tag)
 		}
+		// preserve comments
+		hc := node.HeadComment
+		lc := node.LineComment
+		fc := node.FootComment
+		if err := node.Encode(output); err != nil {
+			return err
+		}
+		node.HeadComment = hc
+		node.LineComment = lc
+		node.FootComment = fc
 	} else {
 		buf := bytes.NewBufferString("")
 		if err := hydrateString(input, buf, variables); err != nil {
 			return err
 		}
-		output = buf.String()
+		node.Value = buf.String()
 	}
-	// preserve comments
-	hc := node.HeadComment
-	lc := node.LineComment
-	fc := node.FootComment
-	if err := node.Encode(output); err != nil {
-		return err
-	}
-	node.HeadComment = hc
-	node.LineComment = lc
-	node.FootComment = fc
 	return nil
 }
 
