@@ -74,6 +74,38 @@ voo: <[voo]>
 
 }
 
+func TestHydrateSideEffect(t *testing.T) {
+	rawVariables := []byte(`
+---
+foo: 33
+`)
+	variables := make(map[string]interface{})
+
+	byteContent := bytes.NewReader(rawVariables)
+	decoder := yaml.NewDecoder(byteContent)
+
+	require.NoError(t, decoder.Decode(&variables))
+	input := `
+---
+foo: <[foo]>
+replicas: 1
+`
+	expected := `
+---
+foo: 33
+replicas: 1
+`
+
+	buf := bytes.NewBufferString("")
+	require.NoError(t, runner.Hydrate([]byte(input), buf, variables))
+	assert.Equal(
+		t,
+		expected,
+		buf.String(),
+	)
+
+}
+
 func TestYttBuildArgs(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	testNS := "environments/ns1"
