@@ -2,6 +2,12 @@
 HISTORY
 *******
 
+3.1.6 (2022-11-05)
+==================
+
+- skipped 3.1.5 because it was on golang 1.19.2 and contained a vulnerability
+  upgraded to golang 1.19.3. See https://pkg.go.dev/vuln/GO-2022-1095 for more
+  info.
 - multiple inherit support for beaver files
 - can now disable a chart
 - support to rename a chart in the beaver definition with the `name` key
