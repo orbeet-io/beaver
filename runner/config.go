@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"fmt"
@@ -539,8 +540,30 @@ func hydrateYaml(root *yaml.Node, variables map[string]interface{}) error {
 	return err
 }
 
+func documentSplitter(input io.Reader) [][]byte {
+	var output [][]byte
+	var tmpOut []byte
+	scanner := bufio.NewScanner(input)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		text := scanner.Bytes()
+		// if sep is found first flush our buffer
+		if string(text) == "---" {
+			// flush buffer
+			output = append(output, tmpOut)
+			// initialize new buffer
+			tmpOut = []byte{}
+		}
+		tmpOut = append(tmpOut, text...)
+		tmpOut = append(tmpOut, []byte("\n")...)
+	}
+	output = append(output, tmpOut)
+	return output
+}
+
 func Hydrate(input []byte, output io.Writer, variables map[string]interface{}) error {
-	documents := bytes.Split(input, []byte("---\n"))
+	// documents := bytes.Split(input, []byte("---\n"))
+	documents := documentSplitter(bytes.NewReader(input))
 	// yaml lib ignore leading '---'
 	// see: https://github.com/go-yaml/yaml/issues/749
 	// which is an issue for ytt value files

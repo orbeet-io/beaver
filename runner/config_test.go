@@ -99,7 +99,7 @@ replicas: 1
 	expected := `
 ---
 foo: 33
-bar: |-
+bar: |
     [section1]
     value1 = 1
     # ----------
