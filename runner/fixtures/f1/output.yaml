@@ -27,3 +27,18 @@ spec:
   selector:
     app: someApp
     tier: frontend
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: odoo_conf
+type: Opaque
+stringData:
+  odoo.conf: |
+    [option]
+    foo = 1
+    bar = 2
+    # -----------------------------------------------
+    # Below options are less crucial
+    # -----------------------------------------------
+    toot = t00t

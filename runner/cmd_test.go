@@ -150,7 +150,7 @@ func TestYamlSplit(t *testing.T) {
 	buildDir := filepath.Join(fixtures, "build", namespace)
 	compiledFiles, err := runner.YamlSplit(buildDir, filepath.Join(fixtures, compiled))
 	require.NoError(t, err)
-	require.Equal(t, 3, len(compiledFiles))
+	require.Equal(t, 4, len(compiledFiles))
 	for _, filePath := range compiledFiles {
 		fileName := filepath.Base(filePath)
 		tokens := strings.Split(fileName, ".")
