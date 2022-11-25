@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: odoo_conf
+type: Opaque
+stringData:
+  odoo.conf: |
+    [option]
+    foo = 1
+    bar = 2
+    # -----------------------------------------------
+    # Below options are less crucial
+    # -----------------------------------------------
+    # yiolo
+    toot = t00t

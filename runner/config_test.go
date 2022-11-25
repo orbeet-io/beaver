@@ -87,11 +87,25 @@ foo: 33
 	input := `
 ---
 foo: <[foo]>
+bar: |
+  [section1]
+  value1 = 1
+  # ----------
+  # some comment
+  # ----------
+  value2 = 2
 replicas: 1
 `
 	expected := `
 ---
 foo: 33
+bar: |-
+    [section1]
+    value1 = 1
+    # ----------
+    # some comment
+    # ----------
+    value2 = 2
 replicas: 1
 `
 

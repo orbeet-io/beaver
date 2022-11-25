@@ -57,7 +57,7 @@ func TestCmdConfig(t *testing.T) {
 		require.Equal(t, 4, len(yttPatches))
 	})
 
-	t.Run("helmCharts", func(t *testing.T) {
+	t.Run("build", func(t *testing.T) {
 		buildDir := filepath.Join(fixtures, "build", "ns1")
 		defer func() {
 			require.NoError(t, runner.CleanDir(buildDir))
@@ -68,6 +68,10 @@ func TestCmdConfig(t *testing.T) {
 		deployment := filepath.Join(buildDir, "Deployment.apps_v1.postgres.yaml")
 		deploy, err := parseFile(deployment)
 		require.NoError(t, err)
+
+		odooConf := filepath.Join(buildDir, "Secret.v1.odoo_conf.yaml")
+		_, err = parseFile(odooConf)
+		require.NoError(t, err, "we produced an invalid yaml resource")
 
 		envVars, err := getEnvVars(deploy)
 		require.NoError(t, err)
@@ -146,7 +150,7 @@ func TestFindFiles(t *testing.T) {
 
 func TestYamlSplit(t *testing.T) {
 	namespace := "ns1"
-	compiled := "output.yaml"
+	compiled := "test_split_input.yaml"
 	buildDir := filepath.Join(fixtures, "build", namespace)
 	compiledFiles, err := runner.YamlSplit(buildDir, filepath.Join(fixtures, compiled))
 	require.NoError(t, err)

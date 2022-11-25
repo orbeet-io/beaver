@@ -10,6 +10,9 @@ charts:
   odoo:
     type: ytt
     path: ../vendor/ytt/odoo
+  extra:
+    type: ytt
+    path: extra.tmpl.yaml
 create:
 - type: configmap
   name: xbus-pipelines
