@@ -2,6 +2,13 @@
 HISTORY
 *******
 
+3.1.8 (unreleased)
+==================
+
+- fix a bug in the hydrate function that caused expressions with multiple
+  variables in the same line to fail to render properly. Exemple:
+  <[image]>:<[tag]> failed to render with a cryptic error
+
 3.1.7 (2022-11-25)
 ==================
 
