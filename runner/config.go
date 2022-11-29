@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -490,11 +491,22 @@ func hydrateString(input string, output io.Writer, variables map[string]interfac
 	return nil
 }
 
+// ^<\[ starts with literal <[
+// ([^<\[\]>]*) a capturing group that matches any 0 or more (due to the * quantifier)
+// characters other than <, [ and ],>
+// ([^...] is a negated character class matching any char but the one(s) specified between [^ and ])
+// \]>$ ends with literal ]>
+var re = regexp.MustCompile(`^<\[([^<\[\]>]*)\]>$`)
+
 func hydrateScalarNode(node *yaml.Node, variables map[string]interface{}) error {
 	input := node.Value
 
-	if strings.HasPrefix(input, "<[") && strings.HasSuffix(input, "]>") {
-		tag := strings.Trim(input, "<[]>")
+	// find all matches
+	matches := re.FindAllStringSubmatch(input, -1)
+
+	if len(matches) == 1 {
+		// first match, then first extracted data (in position 1)
+		tag := matches[0][1]
 		var ok bool
 		output, ok := variables[tag]
 		if !ok {
@@ -524,6 +536,7 @@ func hydrateYamlNodes(nodes []*yaml.Node, variables map[string]interface{}) erro
 	for _, node := range nodes {
 		if node.Kind == yaml.ScalarNode {
 			if err := hydrateScalarNode(node, variables); err != nil {
+				fmt.Printf("node: %+v, variables: %+v\n", node, variables)
 				return fmt.Errorf("failed to parse scalar: %w", err)
 			}
 		} else {
