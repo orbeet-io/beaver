@@ -2,7 +2,7 @@
 HISTORY
 *******
 
-3.1.8 (unreleased)
+3.1.8 (2022-12-06)
 ==================
 
 - fix a bug in the hydrate function that caused expressions with multiple
