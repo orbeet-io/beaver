@@ -19,10 +19,3 @@ create:
   args:
   - flag: --from-file
     value: pipelines
-vars:
-  db_type: postgres
-  dbs:
-    - db1
-    - db2
-  secret:
-    name: postgres
