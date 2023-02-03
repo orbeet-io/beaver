@@ -3,6 +3,7 @@ package runner
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
@@ -74,6 +75,42 @@ nested:
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestLookupVariable(t *testing.T) {
+	variables := map[string]interface{}{
+		"string": "a string",
+		"int":    3,
+		"map": map[interface{}]interface{}{
+			"float": 12.3,
+		},
+		"list": []interface{}{
+			map[interface{}]interface{}{
+				"float": 12.3,
+			},
+		},
+	}
+	for _, tt := range []struct {
+		name     string
+		expected interface{}
+	}{
+		{"string", "a string"},
+		{"int", 3},
+		{"map.float", 12.3},
+		{"list.0.float", 12.3},
+		{"list.2.float", nil},
+		{"list.-2.float", nil},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, ok := lookupVariable(variables, tt.name)
+			if tt.expected == nil {
+				assert.False(t, ok)
+			} else {
+				assert.True(t, ok)
+				assert.Equal(t, tt.expected, actual)
 			}
 		})
 	}

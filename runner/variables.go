@@ -2,6 +2,8 @@ package runner
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -32,4 +34,40 @@ func (v *Variables) UnmarshalYAML(node *yaml.Node) error {
 		}
 	}
 	return nil
+}
+
+func lookupVariable(variables map[string]interface{}, name string) (interface{}, bool) {
+	path := strings.Split(name, ".")
+
+	var v interface{} = variables
+	var ok bool
+	for _, key := range path {
+		v, ok = lookupVariableHelper(v, key)
+		if !ok {
+			return nil, false
+		}
+	}
+	return v, true
+}
+
+func lookupVariableHelper(v interface{}, key string) (interface{}, bool) {
+	switch t := v.(type) {
+	case map[string]interface{}:
+		ret, ok := t[key]
+		return ret, ok
+	case map[interface{}]interface{}:
+		ret, ok := t[key]
+		return ret, ok
+	case []interface{}:
+		index, err := strconv.Atoi(key)
+		if err != nil {
+			return nil, false
+		}
+		if index >= len(t) || index < 0 {
+			return nil, false
+		}
+		return t[index], true
+	default:
+		return nil, false
+	}
 }

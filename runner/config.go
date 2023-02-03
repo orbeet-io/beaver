@@ -393,18 +393,19 @@ func (c *CmdConfig) prepareVariables(doSha bool) (map[string]interface{}, error)
 		variables[variable.Name] = variable.Value
 	}
 	variables["namespace"] = c.Namespace
+	shavars := map[string]interface{}{}
 	for _, sha := range c.Spec.Shas {
-		key := fmt.Sprintf("sha.%s", sha.Key)
 		if doSha {
 			if sha.Sha != "" {
-				variables[key] = sha.Sha
+				shavars[sha.Key] = sha.Sha
 			} else {
 				return nil, fmt.Errorf("SHA not found for %s", sha.Key)
 			}
 		} else {
-			variables[key] = fmt.Sprintf("<[sha.%s]>", sha.Key)
+			shavars[sha.Key] = fmt.Sprintf("<[sha.%s]>", sha.Key)
 		}
 	}
+	variables["sha"] = shavars
 	return variables, nil
 }
 
@@ -463,7 +464,7 @@ func hydrateString(input string, output io.Writer, variables map[string]interfac
 		return fmt.Errorf("unexpected error when parsing template: %w", err)
 	}
 	s, err := t.ExecuteFuncStringWithErr(func(w io.Writer, tag string) (int, error) {
-		val, ok := variables[tag]
+		val, ok := lookupVariable(variables, tag)
 		if !ok {
 			return 0, fmt.Errorf("tag not found: %s", tag)
 		}
@@ -502,7 +503,7 @@ func hydrateScalarNode(node *yaml.Node, variables map[string]interface{}) error 
 		// first match, then first extracted data (in position 1)
 		tag := matches[0][1]
 		var ok bool
-		output, ok := variables[tag]
+		output, ok := lookupVariable(variables, tag)
 		if !ok {
 			return fmt.Errorf("tag not found: %s", tag)
 		}

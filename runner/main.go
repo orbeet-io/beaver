@@ -173,7 +173,9 @@ func (r *Runner) kustomize(tmpDir string, input *os.File) (*os.File, error) {
 			if err != nil {
 				return nil, fmt.Errorf("cannot find relative path for: %s - %w", tmpDir, err)
 			}
-			variables["beaver.build"] = RelInputFilePath
+			variables["beaver"] = map[string]interface{}{
+				"build": RelInputFilePath,
+			}
 
 			if err := hydrate(backupFile, outFile, variables); err != nil {
 				return nil, fmt.Errorf("cannot hydrate: %s - %w", fPath, err)

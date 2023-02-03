@@ -62,13 +62,33 @@ bar: <[bar]>
 baz: <[baz]>
 boo: <[boo]>
 voo: <[voo]>
+barport: <[bar.port]>
+barwith: <[bar.with.1]>
 `
 
 	buf := bytes.NewBufferString("")
 	require.NoError(t, runner.Hydrate([]byte(input), buf, variables))
 	assert.Equal(
 		t,
-		string(rawVariables),
+		`
+#@data/values
+---
+foo: |
+    a multi
+    line string
+bar:
+    port: 5432
+    simple: interface
+    with:
+        - some
+        - content
+baz: |
+    only one line in multiline mode
+boo: a simple joke line
+voo: 33
+barport: 5432
+barwith: content
+`,
 		buf.String(),
 	)
 }
