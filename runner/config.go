@@ -16,12 +16,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Variable ...
-type Variable struct {
-	Name  string
-	Value interface{}
-}
-
 type Sha struct {
 	Key      string
 	Resource string
@@ -65,7 +59,7 @@ type Config struct {
 	Inherit   string
 	NameSpace string
 	Inherits  []string         `yaml:",flow"`
-	Variables []Variable       `yaml:",flow"`
+	Variables Variables        `yaml:",flow"`
 	Sha       []Sha            `yaml:",flow"`
 	Charts    map[string]Chart `yaml:",flow"`
 	Creates   []Create         `yaml:"create,flow"`
@@ -320,7 +314,7 @@ func (s *CmdSha) SetSha(buildDir string) error {
 }
 
 type CmdSpec struct {
-	Variables []Variable
+	Variables Variables
 	Shas      []*CmdSha
 	Charts    CmdCharts
 	Ytt       Ytt
