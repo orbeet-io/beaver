@@ -51,9 +51,13 @@ func (v *Variables) UnmarshalYAML(node *yaml.Node) error {
 	var next Variable
 	for i, content := range node.Content {
 		if i%2 == 0 {
-			content.Decode(&next.Name)
+			if err := content.Decode(&next.Name); err != nil {
+				return err
+			}
 		} else {
-			content.Decode(&next.Value)
+			if err := content.Decode(&next.Value); err != nil {
+				return err
+			}
 			*v = append(*v, next)
 		}
 	}
