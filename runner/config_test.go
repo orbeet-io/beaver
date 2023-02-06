@@ -168,6 +168,22 @@ func TestYttBuildArgs(t *testing.T) {
 	)
 }
 
+func TestInheritVariables(t *testing.T) {
+	tl := testutils.NewTestLogger(t)
+	testNS := "environments/ns1"
+	absConfigDir, err := filepath.Abs(fixtures)
+	require.NoError(t, err)
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, "")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tmpDir))
+	}()
+	require.NoError(t, c.Initialize(tmpDir))
+	assert.Equal(t, "another value", c.Spec.Variables.GetD("test-nested.nested-value1", nil))
+	assert.Equal(t, "Value2", c.Spec.Variables.GetD("test-nested.nested-value2", nil))
+}
+
 func TestCreateConfig(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	testNS := "environments/ns1"

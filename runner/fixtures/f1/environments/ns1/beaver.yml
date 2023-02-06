@@ -3,6 +3,8 @@ inherit: ../../base
 variables:
 - name: VAULT_KV
   value: k8s.orus.io
+- name: test-nested.nested-value1
+  value: another value
 create:
 - type: configmap
   name: xbus-pipelines

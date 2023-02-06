@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -112,6 +113,47 @@ func TestLookupVariable(t *testing.T) {
 				assert.True(t, ok)
 				assert.Equal(t, tt.expected, actual)
 			}
+		})
+	}
+}
+
+func TestSetVariable(t *testing.T) {
+	type V = map[string]interface{}
+
+	variables := func(setters ...func(V)) V {
+		ret := V{
+			"string": "a string",
+			"int":    3,
+			"map": map[interface{}]interface{}{
+				"float": 12.3,
+			},
+			"list": []interface{}{
+				map[interface{}]interface{}{
+					"float": 12.3,
+				},
+			},
+		}
+		for _, s := range setters {
+			s(ret)
+		}
+		return ret
+	}
+	for _, tt := range []struct {
+		name     string
+		value    interface{}
+		expected interface{}
+	}{
+		{"string", "new string", variables(func(v V) { v["string"] = "new string" })},
+		{"int", "not an int anymore", variables(func(v V) { v["int"] = "not an int anymore" })},
+		{"map.float", 13.0, variables(func(v V) { v["map"].(map[interface{}]interface{})["float"] = 13.0 })},
+		{"list.0.float", 15.0, variables(func(v V) { v["list"].([]interface{})[0].(map[interface{}]interface{})["float"] = 15.0 })},
+		{"list.2.float", nil, variables()},
+		{"list.-2.float", nil, variables()},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			v := variables()
+			setVariable(v, strings.Split(tt.name, "."), tt.value)
+			assert.Equal(t, tt.expected, v)
 		})
 	}
 }

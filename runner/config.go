@@ -676,22 +676,5 @@ func (c *CmdConfig) hydrate(dirName string, doSha bool) error {
 // variables into the current cmdconfig by replacing old ones
 // and adding the new ones
 func (c *CmdConfig) MergeVariables(other *Config) {
-	for _, variable := range other.Variables {
-		c.overlayVariable(variable)
-	}
-}
-
-// overlayVariable takes a variable in and either replaces an existing variable
-// of the same name or create a new variable in the config if no matching name
-// is found
-func (c *CmdConfig) overlayVariable(v Variable) {
-	// find same variable by name and replace is value
-	// if not found then create the variable
-	for index, originalVariable := range c.Spec.Variables {
-		if originalVariable.Name == v.Name {
-			c.Spec.Variables[index].Value = v.Value
-			return
-		}
-	}
-	c.Spec.Variables = append(c.Spec.Variables, v)
+	c.Spec.Variables.Overlay(other.Variables...)
 }

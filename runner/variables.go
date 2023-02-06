@@ -16,6 +16,30 @@ type Variable struct {
 
 type Variables []Variable
 
+func (v Variables) Get(path string) (interface{}, bool) {
+	sp := strings.Split(path, ".")
+	head := sp[0]
+	tail := sp[1:]
+
+	for _, variable := range v {
+		if variable.Name == head {
+			if len(tail) == 0 {
+				return variable.Value, true
+			}
+			return lookupVariable(variable.Value, strings.Join(tail, "."))
+		}
+	}
+	return nil, false
+}
+
+func (v Variables) GetD(path string, defaultValue interface{}) interface{} {
+	ret, ok := v.Get(path)
+	if ok {
+		return ret
+	}
+	return defaultValue
+}
+
 func (v *Variables) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode((*[]Variable)(v)); err == nil {
 		return nil
@@ -36,7 +60,72 @@ func (v *Variables) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func lookupVariable(variables map[string]interface{}, name string) (interface{}, bool) {
+func (v *Variables) Overlay(variables ...Variable) {
+	var newVariables Variables
+	for _, inputVar := range variables {
+		path := strings.Split(inputVar.Name, ".")
+		head := path[0]
+		tail := path[1:]
+
+		for i := range *v {
+			if (*v)[i].Name == head {
+				if len(tail) == 0 {
+					(*v)[i].Value = inputVar.Value
+				} else {
+					setVariable((*v)[i].Value, tail, inputVar.Value)
+				}
+				continue
+			}
+		}
+
+		newVariables = append(newVariables, inputVar)
+	}
+	*v = append(*v, newVariables...)
+}
+
+func setVariable(v interface{}, path []string, value interface{}) {
+	head := path[0]
+	tail := path[1:]
+	hasTail := len(tail) != 0
+	switch t := v.(type) {
+	case map[string]interface{}:
+		if hasTail {
+			nextValue, ok := t[head]
+			if !ok {
+				return
+			}
+			setVariable(nextValue, tail, value)
+		} else {
+			t[head] = value
+		}
+	case map[interface{}]interface{}:
+		if hasTail {
+			nextValue, ok := t[head]
+			if !ok {
+				return
+			}
+			setVariable(nextValue, tail, value)
+		} else {
+			t[head] = value
+		}
+	case []interface{}:
+		index, err := strconv.Atoi(head)
+		if err != nil {
+			return
+		}
+		if index >= len(t) || index < 0 {
+			return
+		}
+		if hasTail {
+			setVariable(t[index], tail, value)
+		} else {
+			t[index] = value
+		}
+	default:
+	}
+}
+
+func lookupVariable(variables interface{}, name string) (interface{}, bool) {
 	path := strings.Split(name, ".")
 
 	var v interface{} = variables

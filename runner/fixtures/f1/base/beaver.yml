@@ -3,6 +3,10 @@ variables:
   value: orus.io
 - name: ROLE
   value: odoo-batch
+- name: test-nested
+  value:
+    nested-value1: Value1
+    nested-value2: Value2
 charts:
   postgres:
     type: helm
