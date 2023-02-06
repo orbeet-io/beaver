@@ -56,9 +56,43 @@ charts:
     path: ../.vendor/helm/postgresql  # path to your chart - relative to this file
     name: pgsql                       # overwrite **helm** application name
 # beaver variables that can be used inside your charts value files
+# They are two methods
+# First method :
 variables:
 - name: tag      # give your variable a name
   value: v1.2.3  # and a value
+# Second method :
+variables:
+  tag: v1.2.3
+  my_dict1:
+    my_key1: value1
+    my_dict2:
+      my_key2: value2
+    my_list:
+      - elem1
+      - elem2
+# You can also use inherit to overlay variables
+# in project/base1/beaver.yaml :
+variables:
+  my_dict:
+    key1: value1
+    key2: value2
+# If you want to redefine all dict
+# in project/base2/beaver.yaml :
+inherit: ../base1
+variables:
+  my_dict:
+    newKey1: value3
+# Or if you want to redifine part of dict
+inherit: ../base1
+variables:
+  my_dict.key1: value3
+# result of dict :
+variables:
+  my_dict:
+    key1:value3
+    key2: value1
+
 # generate beaver variables from compiled resource file sha256
 sha:
 - key: configmap_demo               # use to generate beaver variable name
