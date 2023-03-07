@@ -22,10 +22,11 @@ type Sha struct {
 }
 
 type Chart struct {
-	Type     string
-	Path     string
-	Name     string
-	Disabled bool
+	Type      string
+	Path      string
+	Name      string
+	Namespace string
+	Disabled  bool
 }
 
 type Arg struct {
@@ -342,6 +343,7 @@ type CmdChart struct {
 	Type            string
 	Path            string
 	Name            string
+	Namespace       string
 	Disabled        bool
 	ValuesFileNames []string
 }
@@ -353,13 +355,19 @@ const (
 
 // BuildArgs is in charge of producing the argument list to be provided
 // to the cmd
-func (c CmdChart) BuildArgs(n, namespace string) ([]string, error) {
+func (c CmdChart) BuildArgs(n, ns string) ([]string, error) {
 	var name string
+	var namespace string
 	var args []string
 	if c.Name != "" {
 		name = c.Name
 	} else {
 		name = n
+	}
+	if c.Namespace != "" {
+		namespace = c.Namespace
+	} else {
+		namespace = ns
 	}
 	switch c.Type {
 	case HelmType:
@@ -382,6 +390,7 @@ func cmdChartFromChart(c Chart) CmdChart {
 		Type:            c.Type,
 		Path:            c.Path,
 		Name:            c.Name,
+		Namespace:       c.Namespace,
 		Disabled:        c.Disabled,
 		ValuesFileNames: nil,
 	}
