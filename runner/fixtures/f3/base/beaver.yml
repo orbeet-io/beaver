@@ -1,0 +1,10 @@
+charts:
+  postgres1:
+    name: postgres1
+    type: helm
+    path: ../vendor/helm/postgresql1
+    namespace: custom-namespace
+  postgres2:
+    name: postgres2
+    type: helm
+    path: ../vendor/helm/postgresql2

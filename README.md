@@ -42,7 +42,7 @@ A `beaver` project consists of a folder with a `beaver` config file,  either `be
 ## Beaver config file
 
 ```yaml
-# Namespace used for this project
+# Default namespace used for this project
 namespace: default
 # an inherited beaver project - which can also inherit another beaver project
 inherit: ../../base  # path is relative to this beaver config file
@@ -55,6 +55,8 @@ charts:
     type: helm                        # can be either helm or ytt
     path: ../.vendor/helm/postgresql  # path to your chart - relative to this file
     name: pgsql                       # overwrite **helm** application name
+    # Keyword `namespace` only available for Helm charts
+    namespace: my-namespace           # Set namespace only for the current chart(Optional)
 # beaver variables that can be used inside your charts value files
 # They are two methods
 # First method :

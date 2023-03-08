@@ -163,7 +163,7 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 		c.MergeVariables(config)
 
 		for k, chart := range config.Charts {
-			c.Spec.Charts[k] = cmdChartFromChart(chart)
+			c.Spec.Charts[k] = CmdChartFromChart(chart)
 		}
 
 		for _, k := range config.Creates {
@@ -385,7 +385,7 @@ func (c CmdChart) BuildArgs(n, ns string) ([]string, error) {
 	return args, nil
 }
 
-func cmdChartFromChart(c Chart) CmdChart {
+func CmdChartFromChart(c Chart) CmdChart {
 	return CmdChart{
 		Type:            c.Type,
 		Path:            c.Path,

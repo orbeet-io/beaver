@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	fixtures    = "fixtures/f1"
-	shaFixtures = "fixtures/f2"
+	fixtures              = "fixtures/f1"
+	shaFixtures           = "fixtures/f2"
+	helmNamespaceFixtures = "fixtures/f3"
 )
 
 func TestConfig(t *testing.T) {
@@ -28,6 +29,22 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "orus.io", config.Variables[0].Value)
 	assert.Equal(t, "../vendor/helm/postgresql", config.Charts["postgres"].Path)
 	assert.Equal(t, "../vendor/ytt/odoo", config.Charts["odoo"].Path)
+}
+
+func TestBuildArgs(t *testing.T) {
+	config, err := runner.NewConfig(filepath.Join(helmNamespaceFixtures, "base"))
+	require.NoError(t, err)
+
+	for _, chart := range config.Charts {
+		cmdChart := runner.CmdChartFromChart(chart)
+		result, err := cmdChart.BuildArgs("my-name", "my-namespace")
+		require.NoError(t, err)
+		if cmdChart.Namespace != "" {
+			assert.Equal(t, cmdChart.Namespace, result[4])
+		} else {
+			assert.Equal(t, "my-namespace", result[4])
+		}
+	}
 }
 
 func TestHydrate(t *testing.T) {
