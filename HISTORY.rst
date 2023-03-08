@@ -2,6 +2,9 @@
 HISTORY
 *******
 
+- upgraded to quay.orus.io/cloudcrane/golang:1.20.2-bullseye
+- upgraded golangci-lint to 1.51.2
+
 3.1.8 (2022-12-06)
 ==================
 
