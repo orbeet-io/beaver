@@ -13,8 +13,8 @@ import (
 type BuildCmd struct {
 	Args struct {
 		DryRun bool   `short:"d" long:"dry-run" description:"if set only prints commands but do not run them"`
-		Keep   bool   `short:"k" long:"keep" descriptions:"Keep the temporary files"`
-		Output string `short:"o" long:"output" descriptions:"output directory"`
+		Keep   bool   `short:"k" long:"keep" description:"Keep the temporary files"`
+		Output string `short:"o" long:"output" description:"output directory, use \"stdout\" to print to stdout"`
 	}
 	PositionalArgs struct {
 		DirName string `required:"yes" positional-arg-name:"directory"`

@@ -54,25 +54,34 @@ func (r *Runner) Build(tmpDir string) error {
 	if err != nil {
 		return fmt.Errorf("cannot list directory: %s - %w", preBuildDir, err)
 	}
-	if err := CleanDir(outputDir); err != nil {
-		return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
+	if outputDir != "stdout" {
+		if err := CleanDir(outputDir); err != nil {
+			return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
+		}
 	}
 	variables, err := r.config.prepareVariables(true)
 	if err != nil {
 		return fmt.Errorf("cannot prepare variables: %w", err)
 	}
 	for _, file := range files {
+		var outFilePath string
+		var outFile *os.File
 		inFilePath := filepath.Join(preBuildDir, file.Name())
-		outFilePath := filepath.Join(outputDir, file.Name())
-		outFile, err := os.Create(outFilePath)
-		if err != nil {
-			return fmt.Errorf("cannot open: %s - %w", outFilePath, err)
-		}
-		defer func() {
-			if err := outFile.Close(); err != nil {
-				r.config.Logger.Fatal().Err(err).Msg("cannot close hydrated file")
+		if outputDir == "stdout" {
+			outFilePath = "stdout"
+			outFile = os.Stdout
+		} else {
+			outFilePath = filepath.Join(outputDir, file.Name())
+			outFile, err = os.Create(outFilePath)
+			if err != nil {
+				return fmt.Errorf("cannot open: %s - %w", outFilePath, err)
 			}
-		}()
+			defer func() {
+				if err := outFile.Close(); err != nil {
+					r.config.Logger.Fatal().Err(err).Msg("cannot close hydrated file")
+				}
+			}()
+		}
 		if err := hydrate(inFilePath, outFile, variables); err != nil {
 			return fmt.Errorf("cannot hydrate: %s - %w", outFilePath, err)
 		}
