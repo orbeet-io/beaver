@@ -2,6 +2,11 @@
 HISTORY
 *******
 
+3.1.9 (2023-03-23)
+==================
+
+- can now send output to stdout instead of directory wuth `-o stdout`
+- can now force the namespace on a Helm chart
 - upgraded to quay.orus.io/cloudcrane/golang:1.20.2-bullseye
 - upgraded golangci-lint to 1.51.2
 
