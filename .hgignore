@@ -7,3 +7,4 @@ coverage.html
 
 .idea
 *.swp
+.git*
