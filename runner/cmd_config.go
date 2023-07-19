@@ -68,7 +68,7 @@ type CmdConfig struct {
 	Output    string
 }
 
-func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool, output string) *CmdConfig {
+func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool, output string, namespace string) *CmdConfig {
 	cmdConfig := &CmdConfig{}
 	cmdConfig.DryRun = dryRun
 	cmdConfig.Output = output
@@ -77,7 +77,7 @@ func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool,
 	cmdConfig.Spec.Charts = make(map[string]CmdChart)
 	cmdConfig.Spec.Creates = make(map[CmdCreateKey]CmdCreate)
 	cmdConfig.Spec.Shas = []*CmdSha{}
-	cmdConfig.Namespace = ""
+	cmdConfig.Namespace = namespace
 	cmdConfig.Logger = logger
 	return cmdConfig
 }
@@ -120,7 +120,9 @@ func (c *CmdConfig) Initialize(tmpDir string) error {
 	}
 
 	for _, config := range configLayers {
-		c.Namespace = config.NameSpace
+		if c.Namespace == "" {
+			c.Namespace = config.NameSpace
+		}
 		c.MergeVariables(config)
 
 		for k, chart := range config.Charts {

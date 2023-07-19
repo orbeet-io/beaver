@@ -160,7 +160,7 @@ func TestYttBuildArgs(t *testing.T) {
 	testNS := "environments/ns1"
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, "")
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, "", "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
@@ -190,7 +190,7 @@ func TestInheritVariables(t *testing.T) {
 	testNS := "environments/ns1"
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, "")
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, "", "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
@@ -206,7 +206,7 @@ func TestCreateConfig(t *testing.T) {
 	testNS := "environments/ns1"
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, "")
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, "", "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
@@ -250,7 +250,7 @@ func TestSha(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	absConfigDir, err := filepath.Abs(shaFixtures)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, "base", false, "")
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, "base", false, "", "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
