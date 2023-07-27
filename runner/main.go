@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-cmd/cmd"
 	"gopkg.in/yaml.v3"
@@ -319,14 +320,32 @@ func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error)
 
 func (r *Runner) runCommands(tmpDir string, cmds map[string]*cmd.Cmd) ([]string, error) {
 	var compiled []string
-	for name, cmd := range cmds {
-		f, err := r.runCommand(tmpDir, name, cmd)
-		if err != nil {
-			return nil, err
-		}
-		compiled = append(compiled, f.Name())
+	var wg sync.WaitGroup
+	errors := make(chan error, len(cmds))
+	results := make(chan string, len(cmds))
+	for name, command := range cmds {
+		wg.Add(1)
+		go func(name string, c *cmd.Cmd) {
+			defer wg.Done()
+			f, err := r.runCommand(tmpDir, name, c)
+			if err != nil {
+				errors <- err
+			}
+			results <- f.Name()
+		}(name, command)
 	}
-	return compiled, nil
+	wg.Wait()
+	select {
+	case err := <-errors:
+		// return only the first error if any
+		return nil, err
+	default:
+		close(results)
+		for res := range results {
+			compiled = append(compiled, res)
+		}
+		return compiled, nil
+	}
 }
 
 func (r *Runner) runYtt(tmpDir string, compiled []string) (*os.File, error) {
