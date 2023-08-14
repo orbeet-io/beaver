@@ -251,10 +251,14 @@ func (r *Runner) runCommand(tmpDir, name string, cmd *cmd.Cmd) (*os.File, error)
 	if r.config.DryRun {
 		r.config.Logger.Info().
 			Str("command", cmd.Name).
-			Str("args", strings.Join(cmd.Args, " ")).
+			Strs("args", cmd.Args).
 			Msg("would run command")
 		return tmpFile, nil
 	}
+	r.config.Logger.Debug().
+		Str("command", cmd.Name).
+		Strs("args", cmd.Args).
+		Msg("running command")
 	stdOut, stdErr, err := RunCMD(cmd)
 	if err != nil {
 		r.config.Logger.Err(err).
