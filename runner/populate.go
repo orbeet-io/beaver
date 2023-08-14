@@ -16,7 +16,8 @@ func findYtts(layers []string) []string {
 	var result []string
 
 	// we cannot use findYaml here because the order matters
-	for _, layer := range layers {
+	for i := len(layers); i != 0; i-- {
+		layer := layers[i-1]
 		yttDirPath := filepath.Join(layer, "ytt")
 		yttDirInfo, err := os.Stat(yttDirPath)
 		if err == nil && yttDirInfo.IsDir() {
