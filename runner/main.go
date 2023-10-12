@@ -357,11 +357,20 @@ func YamlSplit(buildDir, inputFile string) ([]string, error) {
 		if !ok {
 			return nil, fmt.Errorf("fail to type assert metadata from: %+v", resource)
 		}
+		namespace, ok := metadata["namespace"]
+		if !ok {
+			namespace = ""
+		}
 		name, ok := metadata["name"]
 		if !ok {
 			return nil, fmt.Errorf("fail to type get metadata.name from: %+v", resource)
 		}
-		filename := fmt.Sprintf("%s.%s.%s.yaml", kind, strings.ReplaceAll(apiVersion, "/", "_"), name)
+		filename := ""
+		if namespace != "" {
+			filename = fmt.Sprintf("%s.%s.%s.%s.yaml", kind, strings.ReplaceAll(apiVersion, "/", "_"), namespace, name)
+		} else {
+			filename = fmt.Sprintf("%s.%s.%s.yaml", kind, strings.ReplaceAll(apiVersion, "/", "_"), name)
+		}
 		fPath := filepath.Join(buildDir, filename)
 
 		buf := new(bytes.Buffer)
