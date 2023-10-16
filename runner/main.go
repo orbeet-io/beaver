@@ -71,7 +71,11 @@ func (r *Runner) Build(tmpDir string) error {
 			outFilePath = "stdout"
 			outFile = os.Stdout
 		} else {
-			outFilePath = filepath.Join(outputDir, file.Name())
+			var outputFileName bytes.Buffer
+			if err := Hydrate([]byte(file.Name()), &outputFileName, variables); err != nil {
+				return fmt.Errorf("cannot hydrate file name: %w", err)
+			}
+			outFilePath = filepath.Join(outputDir, strings.TrimSuffix(outputFileName.String(), "\n"))
 			outFile, err = os.Create(outFilePath)
 			if err != nil {
 				return fmt.Errorf("cannot open: %s - %w", outFilePath, err)
