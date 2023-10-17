@@ -2,6 +2,7 @@ package runner_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,10 +16,11 @@ import (
 	"orus.io/orus-io/beaver/testutils"
 )
 
-var (
+const (
 	fixtures              = "fixtures/f1"
 	shaFixtures           = "fixtures/f2"
 	helmNamespaceFixtures = "fixtures/f3"
+	disabledAsVar         = "fixtures/fDisabledAsVar"
 )
 
 func TestConfig(t *testing.T) {
@@ -237,6 +239,65 @@ func TestCreateConfig(t *testing.T) {
 			},
 			args,
 		)
+	}
+}
+
+type disabledTCase struct {
+	Name        string
+	TestPath    string
+	FilePresent bool
+}
+
+func TestDisabledAsVariable(t *testing.T) {
+	tCases := []disabledTCase{
+		{
+			Name:        "disabled",
+			TestPath:    "noconfigmap",
+			FilePresent: false,
+		},
+		{
+			Name:        "enabled",
+			TestPath:    "configmapenabled",
+			FilePresent: true,
+		},
+	}
+	for _, tCase := range tCases {
+		t.Run(tCase.Name, func(t *testing.T) {
+			runTestDisabledAsVar(t, tCase)
+		})
+	}
+}
+
+func runTestDisabledAsVar(t *testing.T, tCase disabledTCase) {
+	t.Helper()
+	buildDir := filepath.Join(disabledAsVar, "build", "example")
+	defer func() {
+		require.NoError(t, runner.CleanDir(buildDir))
+	}()
+
+	tl := testutils.NewTestLogger(t)
+	absRootDir, err := filepath.Abs(disabledAsVar)
+	require.NoError(t, err)
+	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, "", "")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tmpDir))
+	}()
+	require.NoError(t, c.Initialize(tmpDir))
+	r := runner.NewRunner(c)
+	require.NoError(t, r.Build(tmpDir))
+
+	outPutConfigMapName := filepath.Join(buildDir, "ConfigMap.v1.demo.yaml")
+	if !tCase.FilePresent {
+		_, err = os.Stat(outPutConfigMapName)
+		require.Error(t, err)
+		// file should not exist since it is disabled by a variable in the noconfigmap/beaver.yaml
+		require.True(t, errors.Is(err, os.ErrNotExist))
+	} else {
+		_, err = os.Stat(outPutConfigMapName)
+		// file should exist
+		require.NoError(t, err)
 	}
 }
 

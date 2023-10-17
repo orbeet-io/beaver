@@ -45,7 +45,7 @@ func hydrateString(input string, output io.Writer, variables map[string]interfac
 		return err
 	}
 
-	// Search for over occurences of beaver variables
+	// Search for over occurrences of beaver variables
 	regex := regexp.MustCompile(`<\[([^<\[\]>]*)\]>`)
 	for regex.MatchString(s) {
 		return hydrateString(s, output, variables)

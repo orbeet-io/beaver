@@ -2,12 +2,13 @@ package runner
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/require"
 )
 
 type ToBoolTestCase struct {
 	Input       string
-	Ouput       bool
+	Output      bool
 	ExpectError bool // if you expect an error put true here
 }
 
@@ -15,37 +16,37 @@ func TestToBool(t *testing.T) {
 	tCases := []ToBoolTestCase{
 		{
 			Input:       "1",
-			Ouput:       true,
+			Output:      true,
 			ExpectError: false,
 		},
 		{
 			Input:       "0",
-			Ouput:       false,
+			Output:      false,
 			ExpectError: false,
 		},
 		{
 			Input:       "True",
-			Ouput:       true,
+			Output:      true,
 			ExpectError: false,
 		},
 		{
 			Input:       "true",
-			Ouput:       true,
+			Output:      true,
 			ExpectError: false,
 		},
 		{
 			Input:       "False",
-			Ouput:       false,
+			Output:      false,
 			ExpectError: false,
 		},
 		{
 			Input:       "false",
-			Ouput:       false,
+			Output:      false,
 			ExpectError: false,
 		},
 		{
 			Input:       "flase",
-			Ouput:       false,
+			Output:      false,
 			ExpectError: true,
 		},
 	}
@@ -55,7 +56,7 @@ func TestToBool(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.Equal(t, tCase.Ouput, res)
+			require.Equal(t, tCase.Output, res)
 		}
 	}
 }

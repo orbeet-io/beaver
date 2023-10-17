@@ -1,0 +1,5 @@
+namespace: ns1
+inherit: ../base
+variables:
+- name: configmapDisabled
+  value: false
