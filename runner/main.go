@@ -36,8 +36,17 @@ func NewRunner(cfg *CmdConfig) *Runner {
 
 // Build is in charge of applying commands based on the config data
 func (r *Runner) Build(tmpDir string) error {
+	variables, err := r.config.prepareVariables(false)
+	if err != nil {
+		return fmt.Errorf("cannot prepare variables: %w", err)
+	}
 	var outputDir string
 	if r.config.Output == "" {
+		w := bytes.NewBuffer([]byte{})
+		if err := hydrateString(r.config.Namespace, w, variables); err != nil {
+			return err
+		}
+		r.config.Namespace = w.String()
 		outputDir = filepath.Join(r.config.RootDir, "build", r.config.Namespace)
 	} else {
 		outputDir = r.config.Output
@@ -59,7 +68,7 @@ func (r *Runner) Build(tmpDir string) error {
 			return fmt.Errorf("cannot clean dir: %s: %w", outputDir, err)
 		}
 	}
-	variables, err := r.config.prepareVariables(true)
+	variables, err = r.config.prepareVariables(true)
 	if err != nil {
 		return fmt.Errorf("cannot prepare variables: %w", err)
 	}
