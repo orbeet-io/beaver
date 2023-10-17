@@ -44,6 +44,13 @@ func hydrateString(input string, output io.Writer, variables map[string]interfac
 	if err != nil {
 		return err
 	}
+
+	// Search for over occurences of beaver variables
+	regex := regexp.MustCompile(`<\[([^<\[\]>]*)\]>`)
+	for regex.MatchString(s) {
+		return hydrateString(s, output, variables)
+	}
+
 	if _, err := output.Write([]byte(s)); err != nil {
 		return fmt.Errorf("failed to template: %w", err)
 	}
