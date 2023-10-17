@@ -52,6 +52,15 @@ func (r *Runner) Build(tmpDir string) error {
 		outputDir = r.config.Output
 	}
 
+	for name := range r.config.Spec.Charts {
+		w := bytes.NewBuffer([]byte{})
+		if err := hydrateString(r.config.Spec.Charts[name].Disabled, w, variables); err != nil {
+			return err
+		}
+		chart := r.config.Spec.Charts[name]
+		chart.Disabled = w.String()
+		r.config.Spec.Charts[name] = chart
+	}
 	preBuildDir := filepath.Join(tmpDir, "pre-build")
 	if err := r.DoBuild(tmpDir, preBuildDir); err != nil {
 		return fmt.Errorf("failed to do pre-build: %w", err)
@@ -216,12 +225,29 @@ func (r *Runner) kustomize(tmpDir string, input *os.File) (*os.File, error) {
 	return input, nil
 }
 
+func toBool(s string) (bool, error) {
+	sLower := strings.ToLower(s)
+	finalString := strings.TrimSuffix(sLower, "\n")
+	switch finalString {
+	case "0", "false", "":
+		return false, nil
+	case "1", "true":
+		return true, nil
+	default:
+		return false, errors.New("cannot parse " + s + " as bool")
+	}
+}
+
 func (r *Runner) prepareCmds() (map[string]*cmd.Cmd, error) {
 	// create helm commands
 	// create ytt chart commands
 	cmds := make(map[string]*cmd.Cmd)
 	for name, chart := range r.config.Spec.Charts {
-		if chart.Disabled {
+		disabled, err := toBool(chart.Disabled)
+		if err != nil {
+			return nil, err
+		}
+		if disabled {
 			continue
 		}
 		args, err := chart.BuildArgs(name, r.config.Namespace)

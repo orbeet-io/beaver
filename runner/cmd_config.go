@@ -267,11 +267,12 @@ func (c *CmdConfig) BuildYttArgs(paths, compiled []string) []string {
 type CmdCharts map[string]CmdChart
 
 type CmdChart struct {
-	Type            string
-	Path            string
-	Name            string
-	Namespace       string
-	Disabled        bool
+	Type      string
+	Path      string
+	Name      string
+	Namespace string
+	// Must be castable into bool (0,1,true,false)
+	Disabled        string
 	ValuesFileNames []string
 }
 

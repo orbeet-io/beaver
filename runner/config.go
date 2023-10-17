@@ -31,7 +31,8 @@ type Chart struct {
 	Namespace string
 	// Disabled: disable this chart
 	// This can be useful when inheriting the chart
-	Disabled bool
+	// must be castable to bool (0,1,true,false)
+	Disabled string
 }
 
 // Arg define command line arguments
