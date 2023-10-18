@@ -262,7 +262,11 @@ Your base provides the diverse options and your inheritance will pick the ones t
 ## Output files
 
 `beaver` output files have the following format:
-
+- if the resource is namespaced :
+```
+<kind>.<apiVersion>.<metadata.namespace>.<metadata.name>.yaml
+```
+- if the resource is clusterwide :
 ```
 <kind>.<apiVersion>.<metadata.name>.yaml
 ```
