@@ -21,6 +21,7 @@ const (
 	shaFixtures           = "fixtures/f2"
 	helmNamespaceFixtures = "fixtures/f3"
 	disabledAsVar         = "fixtures/fDisabledAsVar"
+	namespaceAsVar        = "fixtures/fNamespaceAsVar"
 )
 
 func TestConfig(t *testing.T) {
@@ -292,7 +293,70 @@ func runTestDisabledAsVar(t *testing.T, tCase disabledTCase) {
 	if !tCase.FilePresent {
 		_, err = os.Stat(outPutConfigMapName)
 		require.Error(t, err)
-		// file should not exist since it is disabled by a variable in the noconfigmap/beaver.yaml
+		// file should not exist since it is disabled by a variable in the ns2/beaver.yaml
+		require.True(t, errors.Is(err, os.ErrNotExist))
+	} else {
+		_, err = os.Stat(outPutConfigMapName)
+		// file should exist
+		require.NoError(t, err)
+	}
+}
+
+type namespaceTCase struct {
+	Name             string
+	TestPath         string
+	ExpectedBuildDir string
+	FilePresent      bool
+}
+
+func TestNamaspaceAsVariable(t *testing.T) {
+	tCases := []namespaceTCase{
+		{
+			Name:             "ns1yo",
+			TestPath:         "ns1",
+			ExpectedBuildDir: filepath.Join(namespaceAsVar, "build", "ns1yo"),
+			FilePresent:      true,
+		},
+		{
+			Name:             "ns2yo",
+			TestPath:         "ns2",
+			ExpectedBuildDir: filepath.Join(namespaceAsVar, "build", "ns2yo"),
+			FilePresent:      true,
+		},
+	}
+	for _, tCase := range tCases {
+		t.Run(tCase.Name, func(t *testing.T) {
+			runTestBeaverNamespaceAsVariable(t, tCase)
+		})
+	}
+}
+
+func runTestBeaverNamespaceAsVariable(t *testing.T, tCase namespaceTCase) {
+	t.Helper()
+	defer func() {
+		require.NoError(t, runner.CleanDir(tCase.ExpectedBuildDir))
+		require.NoError(t, os.RemoveAll(tCase.ExpectedBuildDir))
+	}()
+
+	tl := testutils.NewTestLogger(t)
+	absRootDir, err := filepath.Abs(namespaceAsVar)
+	require.NoError(t, err)
+	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, "", "")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tmpDir))
+	}()
+	require.NoError(t, c.Initialize(tmpDir))
+	r := runner.NewRunner(c)
+	require.NoError(t, r.Build(tmpDir))
+
+	// the output file should be in a directory that matches the variable namespace
+	outPutConfigMapName := filepath.Join(tCase.ExpectedBuildDir, "ConfigMap.v1.demo.yaml")
+	if !tCase.FilePresent {
+		_, err = os.Stat(outPutConfigMapName)
+		require.Error(t, err)
+		// file should not exist since it is disabled by a variable in the ns2/beaver.yaml
 		require.True(t, errors.Is(err, os.ErrNotExist))
 	} else {
 		_, err = os.Stat(outPutConfigMapName)

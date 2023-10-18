@@ -1,0 +1,5 @@
+namespace: <[myns]>
+charts:
+  demoytt:
+    type: ytt
+    path: demoytt.tmpl.yaml

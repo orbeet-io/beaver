@@ -4,3 +4,6 @@ charts:
     type: ytt
     path: demoytt.tmpl.yaml
     disabled: <[configmapDisabled]>
+variables:
+- name: configmapDisabled
+  value: true

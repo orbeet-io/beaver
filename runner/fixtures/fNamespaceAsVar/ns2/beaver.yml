@@ -1,0 +1,5 @@
+namespace: ns2
+inherit: ../base
+variables:
+- name: myns
+  value: ns2yo

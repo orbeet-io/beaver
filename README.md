@@ -155,8 +155,7 @@ folder.
 
 ## Beaver variables
 
-`beaver` variables can be used inside your value files, and **only** inside value
-files, using the following syntax:
+`beaver` variables can be used inside your value files, using the following syntax:
 
 ```
 <[variable_name]>
@@ -199,6 +198,67 @@ variables:
 here `pg_tag` value will be `13.7-alpine` if you run
 `beaver build environments/demo`.
 
+### Beaver variables in the beaver namespace itself
+
+You can set some variables in the 'namespace' keyword of a beaver file.
+
+```yaml
+# example/base/beaver.yml
+namespace: <[myns]>
+charts:
+  demoytt:
+    type: ytt
+    path: demoytt.tmpl.yaml
+```
+
+in this case this means this base is not useable by itself but can now be adapted by the caller by setting a beaver
+variable to fill the slot
+
+```yaml
+# example/ns1/beaver.yml
+namespace: ns1
+inherit: ../base
+variables:
+- name: myns
+  value: ns1yo
+```
+
+This is a somewhat warped example but in this case the resulting ouput dir (namespace for beaver) will be example/build/ns1yo
+
+### variables inside the charts.disabled flag
+
+imagine a base with a chart that is disabled by default
+
+```yaml
+# example/base/beaver.yml
+namespace: example
+charts:
+  demoytt:
+    type: ytt
+    path: demoytt.tmpl.yaml
+    disabled: <[configmapDisabled]>
+variables:
+- name: configmapDisabled
+  value: true
+```
+
+and another file that inherits from this base and want to have this chart enabled
+
+```yaml
+# example/configmapenabled/beaver.yml
+namespace: ns1
+inherit: ../base
+variables:
+- name: configmapDisabled
+  value: false
+```
+
+This can be used to allow for options in some inheritance cases where you want to enable/disable a certain backend like
+a Redis server, a Postgresql server.
+Your base provides the diverse options and your inheritance will pick the ones they need.
+
+
+
 ## Output files
 
 `beaver` output files have the following format:
@@ -209,7 +269,7 @@ here `pg_tag` value will be `13.7-alpine` if you run
 
 all `apiVersion` slashes (`/`) are replaced by underscores (`_`).
 
-This convention will help you reviewing merge requests.
+This convention will help you review merge requests.
 
 By default `beaver` will store those files inside `${PWD}/build/<namespace>`, you
 can use `-o` or `--output` to specify an output directory.
@@ -247,7 +307,7 @@ You can patch **all** your compiled resources using
 [ytt overlays](https://carvel.dev/ytt/docs/v0.39.0/ytt-overlays/) by providing
 `ytt.yaml` or `ytt.yml` files or a `ytt` folder inside your `beaver` project(s).
 
-You can use `beaver` variables inside ytt files (outside of ytt folder), because
+You can use `beaver` variables inside ytt files (outside ytt folder), because
 `beaver` considers those as value files.
 
 ## Create resources using kubectl create
