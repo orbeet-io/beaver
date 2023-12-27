@@ -9,10 +9,11 @@ import (
 
 type BuildCmd struct {
 	Args struct {
-		DryRun    bool   `short:"d" long:"dry-run" description:"if set only prints commands but do not run them"`
-		Keep      bool   `short:"k" long:"keep" description:"Keep the temporary files"`
-		Output    string `short:"o" long:"output" description:"output directory, use \"stdout\" to print to stdout"`
-		Namespace string `short:"n" long:"namespace" description:"force helm namespace flag for all helm charts"`
+		DryRun         bool   `short:"d" long:"dry-run" description:"if set only prints commands but do not run them"`
+		Keep           bool   `short:"k" long:"keep" description:"Keep the temporary files"`
+		Output         string `short:"o" long:"output" description:"output directory, use \"stdout\" to print to stdout"`
+		Namespace      string `short:"n" long:"namespace" description:"force helm namespace flag for all helm charts"`
+		WithoutHydrate bool   `short:"h" long:"without-hydrate" description:"don't hydrate files with beaver variables"`
 	}
 	PositionalArgs struct {
 		DirName string `required:"yes" positional-arg-name:"directory"`
@@ -30,7 +31,15 @@ func (cmd *BuildCmd) Execute([]string) error {
 	log := LoggingOptions.Logger()
 	log.Debug().Str("directory", cmd.PositionalArgs.DirName).Msg("starting beaver")
 
-	config := runner.NewCmdConfig(log, ".", cmd.PositionalArgs.DirName, cmd.Args.DryRun, cmd.Args.Output, cmd.Args.Namespace)
+	config := runner.NewCmdConfig(
+		cmd.log,
+		".",
+		cmd.PositionalArgs.DirName,
+		cmd.Args.DryRun,
+		cmd.Args.WithoutHydrate,
+		cmd.Args.Output,
+		cmd.Args.Namespace,
+	)
 
 	path, err := os.Getwd()
 	if err != nil {

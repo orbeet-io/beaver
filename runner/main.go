@@ -105,7 +105,7 @@ func (r *Runner) Build(tmpDir string) error {
 				}
 			}()
 		}
-		if err := hydrate(inFilePath, outFile, variables); err != nil {
+		if err := hydrate(inFilePath, outFile, variables, r.config.WithoutHydrate); err != nil {
 			return fmt.Errorf("cannot hydrate: %s - %w", outFilePath, err)
 		}
 	}
@@ -209,7 +209,7 @@ func (r *Runner) kustomize(tmpDir string, input *os.File) (*os.File, error) {
 				"build": RelInputFilePath,
 			}
 
-			if err := hydrate(backupFile, outFile, variables); err != nil {
+			if err := hydrate(backupFile, outFile, variables, r.config.WithoutHydrate); err != nil {
 				return nil, fmt.Errorf("cannot hydrate: %s - %w", fPath, err)
 			}
 			lastKustomizeFolder = filepath.Join(layer, "kustomize")

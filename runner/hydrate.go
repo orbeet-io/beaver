@@ -161,16 +161,20 @@ func Hydrate(input []byte, output io.Writer, variables map[string]interface{}) e
 }
 
 // hydrate a given file
-func hydrate(input string, output io.Writer, variables map[string]interface{}) error {
+func hydrate(input string, output io.Writer, variables map[string]interface{}, disabled bool) error {
 	byteTemplate, err := os.ReadFile(input)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %w", input, err)
+	}
+	if disabled {
+		_, err := output.Write(byteTemplate)
+		return err
 	}
 	return Hydrate(byteTemplate, output, variables)
 }
 
 // hydrateFiles in a given directory
-func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []string) ([]string, error) {
+func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []string, disabled bool) ([]string, error) {
 	var result []string
 	for _, path := range paths {
 		fileInfo, err := os.Stat(path)
@@ -190,7 +194,7 @@ func hydrateFiles(tmpDir string, variables map[string]interface{}, paths []strin
 		defer func() {
 			_ = tmpFile.Close()
 		}()
-		if err := hydrate(path, tmpFile, variables); err != nil {
+		if err := hydrate(path, tmpFile, variables, disabled); err != nil {
 			return nil, fmt.Errorf("failed to hydrate: %w", err)
 		}
 		result = append(result, tmpFile.Name())

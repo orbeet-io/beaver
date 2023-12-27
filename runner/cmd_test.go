@@ -35,7 +35,7 @@ func TestCmdConfig(t *testing.T) {
 	testPath := filepath.Join("environments", "ns1")
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testPath, false, "", "")
+	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testPath, false, false, "", "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {

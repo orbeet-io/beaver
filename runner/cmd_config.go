@@ -61,18 +61,28 @@ type CmdSha struct {
 }
 
 type CmdConfig struct {
-	Spec      CmdSpec
-	RootDir   string
-	Layers    []string
-	Namespace string
-	Logger    zerolog.Logger
-	DryRun    bool
-	Output    string
+	Spec           CmdSpec
+	RootDir        string
+	Layers         []string
+	Namespace      string
+	Logger         zerolog.Logger
+	DryRun         bool
+	WithoutHydrate bool
+	Output         string
 }
 
-func NewCmdConfig(logger zerolog.Logger, rootDir, configDir string, dryRun bool, output string, namespace string) *CmdConfig {
+func NewCmdConfig(
+	logger zerolog.Logger,
+	rootDir,
+	configDir string,
+	dryRun bool,
+	withoutHydrate bool,
+	output string,
+	namespace string,
+) *CmdConfig {
 	cmdConfig := &CmdConfig{}
 	cmdConfig.DryRun = dryRun
+	cmdConfig.WithoutHydrate = withoutHydrate
 	cmdConfig.Output = output
 	cmdConfig.RootDir = rootDir
 	cmdConfig.Layers = append(cmdConfig.Layers, configDir)
@@ -363,14 +373,14 @@ func (c *CmdConfig) hydrate(dirName string, doSha bool) error {
 	}
 
 	for key, chart := range c.Spec.Charts {
-		paths, err := hydrateFiles(dirName, variables, chart.ValuesFileNames)
+		paths, err := hydrateFiles(dirName, variables, chart.ValuesFileNames, c.WithoutHydrate)
 		if err != nil {
 			return err
 		}
 		chart.ValuesFileNames = paths
 		c.Spec.Charts[key] = chart
 	}
-	paths, err := hydrateFiles(dirName, variables, c.Spec.Ytt)
+	paths, err := hydrateFiles(dirName, variables, c.Spec.Ytt, c.WithoutHydrate)
 	if err != nil {
 		return err
 	}
