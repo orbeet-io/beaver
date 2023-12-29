@@ -174,6 +174,46 @@ replicas: 1
 	)
 }
 
+func TestHydrateRawString(t *testing.T) {
+	rawVariables := []byte(`
+---
+foo: |
+  {"something": "special"}
+`)
+	variables := make(map[string]interface{})
+
+	byteContent := bytes.NewReader(rawVariables)
+	decoder := yaml.NewDecoder(byteContent)
+
+	require.NoError(t, decoder.Decode(&variables))
+	input := `
+---
+foo: |
+    {
+      "bar": <[foo]>,
+      "answer": 42
+    }
+`
+	expected := `
+---
+foo: |
+    {
+      "bar": {"something": "special"},
+      "answer": 42
+    }
+`
+
+	buf := bytes.NewBufferString("")
+	err := runner.Hydrate([]byte(input), buf, variables)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		expected,
+		buf.String(),
+	)
+	fmt.Println("done")
+}
+
 func TestYttBuildArgs(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	testNS := "environments/ns1"
