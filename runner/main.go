@@ -419,9 +419,13 @@ func YamlSplit(buildDir, inputFile string) ([]string, error) {
 		if !ok {
 			namespace = ""
 		}
-		name, ok := metadata["name"]
+		var name interface{}
+		name, ok = metadata["name"]
 		if !ok {
-			return nil, fmt.Errorf("fail to type get metadata.name from: %+v", resource)
+			name, ok = metadata["generateName"]
+			if !ok {
+				return nil, fmt.Errorf("fail to type get metadata.name nor metadata.generateName from: %+v", resource)
+			}
 		}
 		filename := ""
 		if namespace != "" {
