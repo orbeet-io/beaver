@@ -5,10 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v3"
-
-	beaver "orus.io/orus-io/beaver/lib"
 )
 
 // Sha define sha feature parameter
@@ -117,29 +114,5 @@ func NewConfig(configDir string) (*Config, error) {
 		return &config, nil
 	}
 
-	if config.BeaverVersion != "" && beaver.Version() != "" {
-		if err := ControlVersions(config.BeaverVersion, beaver.Version()); err != nil {
-			return nil, err
-		}
-	}
-
 	return nil, fmt.Errorf("no beaver file found in %s", configDir)
-}
-
-func ControlVersions(desired, actual string) error {
-	desiredVersion, err := version.NewVersion(desired)
-	if err != nil {
-		return fmt.Errorf("failed to parse desired beaver version: %w", err)
-	}
-
-	actualVersion, err := version.NewVersion(actual)
-	if err != nil {
-		return fmt.Errorf("failed to parse actual beaver version: %w", err)
-	}
-
-	if !desiredVersion.Equal(actualVersion) {
-		return fmt.Errorf("desired beaver version is not equal to actual beaver version, %s != %s", desiredVersion.String(), actualVersion.String())
-	}
-
-	return nil
 }

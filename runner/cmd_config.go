@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
+
+	beaver "orus.io/orus-io/beaver/lib"
 )
 
 const (
@@ -16,7 +18,7 @@ const (
 	YttType  = "ytt"
 )
 
-// type alias describing ytt arguments
+// Ytt is a type alias describing ytt arguments
 type Ytt []string
 
 type CmdSpec struct {
@@ -189,6 +191,11 @@ func (c *CmdConfig) addConfDir(dir string, dirMap map[string]interface{}, config
 	}
 
 	c.Layers = append(c.Layers, absDir)
+	if config.BeaverVersion != "" && beaver.Version() != "" {
+		if err := beaver.ControlVersions(config.BeaverVersion, beaver.Version()); err != nil {
+			return nil, nil, err
+		}
+	}
 	configLayers = append(configLayers, config)
 
 	if config == nil || (len(config.Inherits) == 0 && config.Inherit == "") {

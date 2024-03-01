@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	beaver "orus.io/orus-io/beaver/lib"
 	"orus.io/orus-io/beaver/runner"
 	"orus.io/orus-io/beaver/testutils"
 )
@@ -38,14 +39,14 @@ func TestConfig(t *testing.T) {
 func TestConfigVersionValid(t *testing.T) {
 	config, err := runner.NewConfig(filepath.Join(versionTest, "validbase"))
 	require.NoError(t, err)
-	err = runner.ControlVersions(config.BeaverVersion, "3.2.3")
+	err = beaver.ControlVersions(config.BeaverVersion, "3.2.3")
 	require.NoError(t, err)
 }
 
 func TestConfigVersionInValid(t *testing.T) {
 	config, err := runner.NewConfig(filepath.Join(versionTest, "invalidbase"))
 	require.NoError(t, err)
-	err = runner.ControlVersions(config.BeaverVersion, "3.2.3")
+	err = beaver.ControlVersions(config.BeaverVersion, "3.2.3")
 	require.Error(t, err)
 }
 
