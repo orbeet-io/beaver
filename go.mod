@@ -1,6 +1,6 @@
 module orus.io/orus-io/beaver
 
-go 1.20
+go 1.22
 
 require (
 	github.com/getsentry/sentry-go v0.13.0

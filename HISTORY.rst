@@ -2,6 +2,13 @@
 HISTORY
 *******
 
+3.2.5 (2024-03-01)
+==================
+
+- no functional change. Just bumped the golang release from 1.21 to 1.22.0 to
+  avoid potential vulnerability in the filepath.join functions on windows
+
+
 3.2.4 (2024-03-01)
 ==================
 
