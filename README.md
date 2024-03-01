@@ -44,6 +44,9 @@ A `beaver` project consists of a folder with a `beaver` config file,  either `be
 ```yaml
 # Default namespace used for this project
 namespace: default
+# the desired beaver version. If the binary you use to process this file has a different
+# version number, it will fail to avoid messing your resources.
+beaverversion: 3.2.3
 # an inherited beaver project - which can also inherit another beaver project
 inherit: ../../base  # path is relative to this beaver config file
 inherits:

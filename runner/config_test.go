@@ -22,6 +22,7 @@ const (
 	helmNamespaceFixtures = "fixtures/f3"
 	disabledAsVar         = "fixtures/fDisabledAsVar"
 	namespaceAsVar        = "fixtures/fNamespaceAsVar"
+	versionTest           = "fixtures/versionTest"
 )
 
 func TestConfig(t *testing.T) {
@@ -32,6 +33,20 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "orus.io", config.Variables[0].Value)
 	assert.Equal(t, "../vendor/helm/postgresql", config.Charts["postgres"].Path)
 	assert.Equal(t, "../vendor/ytt/odoo", config.Charts["odoo"].Path)
+}
+
+func TestConfigVersionValid(t *testing.T) {
+	config, err := runner.NewConfig(filepath.Join(versionTest, "validbase"))
+	require.NoError(t, err)
+	err = runner.ControlVersions(config.BeaverVersion, "3.2.3")
+	require.NoError(t, err)
+}
+
+func TestConfigVersionInValid(t *testing.T) {
+	config, err := runner.NewConfig(filepath.Join(versionTest, "invalidbase"))
+	require.NoError(t, err)
+	err = runner.ControlVersions(config.BeaverVersion, "3.2.3")
+	require.Error(t, err)
 }
 
 func TestBuildArgs(t *testing.T) {

@@ -2,6 +2,34 @@
 HISTORY
 *******
 
+3.2.3 (2024-03-01)
+==================
+
+- config file now contains a beaverversion entry. If this entry is not left blank, beaver will try
+to match its version with the desired version. If the two versions do not match beaver will refuse
+to process the resources to avoid getting a different results.
+
+3.2.2 (2023-10-17)
+==================
+
+- disabled keyword in charts can now be a variable
+
+3.2.1 (2023-10-17)
+==================
+
+- namespace beaver can now be a variable
+
+3.2.0 (2023-10-17)
+==================
+
+- build namespace flag to force helm chart namespace
+- bump ci to 1.20.6 to avoid vulncheck
+- Fix logging: the wrong logger was used in 'build'
+- [ytt] reverse the layer paths order on the command line
+- ns name in rs name if ns exists in rs
+- beaver now hydrate filename of rs
+- recursive variable hydration support added
+
 3.1.9 (2023-03-23)
 ==================
 

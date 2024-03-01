@@ -1,0 +1,5 @@
+beaverversion: 3.2.3
+charts:
+  postgres:
+    type: helm
+    path: ../vendor/helm/postgresql
