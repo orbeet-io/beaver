@@ -2,6 +2,14 @@
 HISTORY
 *******
 
+3.2.6 (2024-03-01)
+==================
+
+- config file now contains a beaverversion entry. If this entry is not left blank, beaver will try
+to match its version with the desired version. If the two versions do not match beaver will refuse
+to process the resources to avoid getting a different results.
+
+
 3.2.5 (2024-03-01)
 ==================
 
@@ -12,9 +20,8 @@ HISTORY
 3.2.4 (2024-03-01)
 ==================
 
-- config file now contains a beaverversion entry. If this entry is not left blank, beaver will try
-to match its version with the desired version. If the two versions do not match beaver will refuse
-to process the resources to avoid getting a different results.
+ - no feature added
+
 
 3.2.3 (2023-10-18)
 ==================
