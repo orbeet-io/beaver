@@ -2,6 +2,13 @@
 HISTORY
 *******
 
+3.2.7 (2024-03-12)
+==================
+
+- NO functional change. Only a rebuild with Golang 1.22.1 to avoid some
+  vulnerability with crypto/x509 https://pkg.go.dev/vuln/GO-2024-2598
+  and with net/textproto https://pkg.go.dev/vuln/GO-2024-2599
+
 3.2.6 (2024-03-01)
 ==================
 
