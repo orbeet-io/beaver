@@ -16,16 +16,17 @@
 ## Features
 
 - template engine:
-	- [helm](https://helm.sh/)
-	- [ytt](https://carvel.dev/ytt/)
+	- [helm](https://helm.sh/) charts
+	- [ytt](https://carvel.dev/ytt/) charts
 	- [kubectl create](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create)
     - [kustomize](https://kustomize.io)
 - patch engine:
 	- [ytt overlay](https://carvel.dev/ytt/docs/v0.39.0/ytt-overlays/)
-- multi environment variables
+    - [kustomize](https://kustomize.io)
+- multi-environment variables
 - sha256 sum for any compiled resource can be used as variable
 - inheritance between `beaver` project
-- each built resource is output inside it's own file
+- each built resource outputs its own file
 
 ## Usage
 
@@ -44,29 +45,44 @@ A `beaver` project consists of a folder with a `beaver` config file,  either `be
 ```yaml
 # Default namespace used for this project
 namespace: default
-# the desired beaver version. If the binary you use to process this file has a different
-# version number, it will fail to avoid messing your resources.
+# the desired beaver version. If the binary you use to process this file has a
+# different version number, it will refuse to process the project to avoid
+# messing with your resources.
 beaverversion: 3.2.3
 # an inherited beaver project - which can also inherit another beaver project
+# when starting your first beaver project you create a base file without inherit
+# then you create some other file that inherits from your base to reflect
+# some kind of environment change (production vs dev)
 inherit: ../../base  # path is relative to this beaver config file
+# you can also inherit from multiple bases at the same time
 inherits:
 - ../../base1
 - ../../base2
+# a beaver project is essentially a collection of charts (either helm or ytt)
 # your project charts
 charts:
   postgres:                           # your chart local name
     type: helm                        # can be either helm or ytt
     path: ../.vendor/helm/postgresql  # path to your chart - relative to this file
-    name: pgsql                       # overwrite **helm** application name
+    name: pgsql                       # overwrite **helm** application name, cannot be used for ytt charts
     # Keyword `namespace` only available for Helm charts
     namespace: my-namespace           # Set namespace only for the current chart(Optional)
-# beaver variables that can be used inside your charts value files
-# They are two methods
+
+
+# You can define beaver variables
+# they can be used inside your charts value files
+# There are two methods
 # First method :
+# this method was the original one and is here for historical reasons
+# but we highly recommend you use the second method which is nicer and
+# will lead to better templates
 variables:
 - name: tag      # give your variable a name
   value: v1.2.3  # and a value
+
+
 # Second method :
+# which is the recommended way to go (implemented later)
 variables:
   tag: v1.2.3
   my_dict1:
@@ -76,23 +92,29 @@ variables:
     my_list:
       - elem1
       - elem2
+
+
 # You can also use inherit to overlay variables
 # in project/base1/beaver.yaml :
 variables:
   my_dict:
     key1: value1
     key2: value2
-# If you want to redefine all dict
+
+
+# If you want to redefine all the dict
 # in project/base2/beaver.yaml :
 inherit: ../base1
 variables:
   my_dict:
     newKey1: value3
-# Or if you want to redifine part of dict
+
+# Or if you want to redefine only part of the dict
 inherit: ../base1
 variables:
   my_dict.key1: value3
-# result of dict :
+
+# resulting dict :
 variables:
   my_dict:
     key1:value3
@@ -102,6 +124,7 @@ variables:
 sha:
 - key: configmap_demo               # use to generate beaver variable name
   resource: ConfigMap.v1.demo.yaml  # compiled resource filename
+
 # create some resources using `kubectl create`
 create:
 - type: configmap       # resource kind as passed to kubectl create
@@ -113,7 +136,7 @@ create:
 
 ## Value files
 
-Value files filename use the following format:
+Value files filename uses the following format:
 
 ```
 <chart_local_name>.[yaml,yml]
@@ -245,7 +268,7 @@ variables:
   value: true
 ```
 
-and another file that inherits from this base and want to have this chart enabled
+and another file that inherits from this base and wants to have this chart enabled
 
 ```yaml
 # example/configmapenabled/beaver.yml
@@ -258,8 +281,7 @@ variables:
 
 This can be used to allow for options in some inheritance cases where you want to enable/disable a certain backend like
 a Redis server, a Postgresql server.
-Your base provides the diverse options and your inheritance will pick the ones they need.
-
+Your base provides the different options and your inheritance will pick the ones they need.
 
 
 ## Output files
