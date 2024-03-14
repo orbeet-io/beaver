@@ -32,7 +32,7 @@ func (cmd *BuildCmd) Execute([]string) error {
 	log.Debug().Str("directory", cmd.PositionalArgs.DirName).Msg("starting beaver")
 
 	config := runner.NewCmdConfig(
-		cmd.log,
+		log,
 		".",
 		cmd.PositionalArgs.DirName,
 		cmd.Args.DryRun,
