@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-cmd/cmd v1.4.1
+	github.com/hashicorp/go-version v1.6.0
 	github.com/orus-io/go-flags v1.4.0
 	github.com/rs/zerolog v1.28.0
 	github.com/spf13/viper v1.11.0
@@ -17,7 +18,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect

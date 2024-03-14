@@ -14,7 +14,7 @@ import (
 )
 
 func TestHelmDependencyBuild(t *testing.T) {
-	fixtures = "fixtures/f4"
+	fixtures := "fixtures/f4"
 	tl := testutils.NewTestLogger(t)
 
 	absConfigDir, err := filepath.Abs(fixtures)

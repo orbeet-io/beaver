@@ -335,7 +335,7 @@ func runTestDisabledAsVar(t *testing.T, tCase disabledTCase) {
 	tl := testutils.NewTestLogger(t)
 	absRootDir, err := filepath.Abs(disabledAsVar)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, "", "")
+	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, false, "", "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
@@ -397,7 +397,7 @@ func runTestBeaverNamespaceAsVariable(t *testing.T, tCase namespaceTCase) {
 	tl := testutils.NewTestLogger(t)
 	absRootDir, err := filepath.Abs(namespaceAsVar)
 	require.NoError(t, err)
-	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, "", "")
+	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, false, "", "")
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
 	require.NoError(t, err)
 	defer func() {
