@@ -330,6 +330,7 @@ func (r *Runner) runCommands(tmpDir string, cmds map[string]*cmd.Cmd) ([]string,
 			f, err := r.runCommand(tmpDir, name, c)
 			if err != nil {
 				errors <- err
+				return
 			}
 			results <- f.Name()
 		}(name, command)
