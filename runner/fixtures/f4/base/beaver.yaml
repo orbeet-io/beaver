@@ -1,0 +1,4 @@
+charts:
+  hcl1:
+    type: helm
+    path: ./hcl1

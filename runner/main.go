@@ -42,6 +42,9 @@ func (r *Runner) Build(tmpDir string) error {
 		return fmt.Errorf("cannot prepare variables: %w", err)
 	}
 	var outputDir string
+	if err := r.config.HelmDependencyBuild(); err != nil {
+		return err
+	}
 	if r.config.Output == "" {
 		w := bytes.NewBuffer([]byte{})
 		if err := hydrateString(r.config.Namespace, w, variables); err != nil {
