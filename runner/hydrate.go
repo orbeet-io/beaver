@@ -35,6 +35,8 @@ func hydrateString(input string, output io.Writer, variables map[string]interfac
 		switch v := val.(type) {
 		case string:
 			return w.Write([]byte(strings.TrimSuffix(v, "\n")))
+		case int:
+			return w.Write([]byte(strings.TrimSuffix(fmt.Sprintf("%d", v), "\n")))
 		default:
 			e := yaml.NewEncoder(w)
 			err := e.Encode(val)

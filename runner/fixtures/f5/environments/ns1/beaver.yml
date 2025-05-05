@@ -1,0 +1,5 @@
+namespace: ns1
+inherits:
+  - ../../base
+variables:
+  port: <[common.port]>

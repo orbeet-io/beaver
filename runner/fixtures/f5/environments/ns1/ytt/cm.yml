@@ -1,0 +1,11 @@
+#@ load("@ytt:data", "data")
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-configmap
+data:
+  #@yaml/text-templated-strings
+  data-1: |
+    port=(@= data.values.port @)
+    data=value

@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,13 @@ func TestHydrateScalarNode(t *testing.T) {
 			Success:        true,
 			ExpectedResult: "img1:3.1.4",
 		},
+		{
+			Name:           "two-on-one-line-with-int",
+			InputYaml:      "<[host]>:<[port]>",
+			InputVars:      map[string]interface{}{"host": "toot", "port": 443},
+			Success:        true,
+			ExpectedResult: "toot:443",
+		},
 	}
 
 	for _, tcase := range testCases {
@@ -43,6 +51,29 @@ func TestHydrateScalarNode(t *testing.T) {
 			require.NoError(t, hydrateScalarNode(node.Content[0], tcase.InputVars))
 
 			assert.Equal(t, tcase.ExpectedResult, node.Content[0].Value)
+		})
+	}
+}
+
+func TestHydrateString(t *testing.T) {
+	testCases := []hydrateTestCase{
+		{
+			Name:           "two-on-one-line-with-int",
+			InputYaml:      "<[host]>:<[port]>",
+			InputVars:      map[string]interface{}{"host": "toot", "port": 443},
+			Success:        true,
+			ExpectedResult: "toot:443",
+		},
+	}
+
+	for _, tcase := range testCases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			b := []byte{}
+			buf := bytes.NewBuffer(b)
+			// hydrate must work
+			require.NoError(t, hydrateString(tcase.InputYaml, buf, tcase.InputVars))
+
+			assert.Equal(t, tcase.ExpectedResult, buf.String())
 		})
 	}
 }
