@@ -8,3 +8,5 @@ coverage.html
 .idea
 *.swp
 .git*
+*.tgz
+*.lock
