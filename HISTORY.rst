@@ -2,6 +2,12 @@
 HISTORY
 *******
 
+3.2.8 (2025-05-05)
+==================
+
+- Fix nested variables with integer
+  (no more "\n" added)
+
 3.2.7 (2024-03-12)
 ==================
 
