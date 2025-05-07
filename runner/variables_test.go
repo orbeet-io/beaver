@@ -1,4 +1,4 @@
-package runner
+package runner_test
 
 import (
 	"strings"
@@ -7,16 +7,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"orus.io/orus-io/beaver/runner"
 )
 
 func TestVariablesUnmarshal(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
 		yaml     string
-		expected Variables
+		expected runner.Variables
 		err      string
 	}{
-		{"legacy", `- name: v1
+		{
+			"legacy",
+			`- name: v1
   value: value1
 - name: v2
   value: 54.3
@@ -27,7 +31,7 @@ func TestVariablesUnmarshal(t *testing.T) {
   - attr1: otherattr1value
     attr2: 4
 `,
-			Variables{
+			runner.Variables{
 				{Name: "v1", Value: "value1"},
 				{Name: "v2", Value: 54.3},
 				{Name: "nested", Value: []interface{}{
@@ -43,7 +47,9 @@ func TestVariablesUnmarshal(t *testing.T) {
 			},
 			"",
 		},
-		{"dict", `v1: value1
+		{
+			"dict",
+			`v1: value1
 v2: 54.3
 nested:
   - attr1: attr1value
@@ -51,7 +57,7 @@ nested:
   - attr1: otherattr1value
     attr2: 4
 `,
-			Variables{
+			runner.Variables{
 				{Name: "v1", Value: "value1"},
 				{Name: "v2", Value: 54.3},
 				{Name: "nested", Value: []interface{}{
@@ -69,7 +75,8 @@ nested:
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			var actual Variables
+			var actual runner.Variables
+
 			err := yaml.Unmarshal([]byte(tt.yaml), &actual)
 			if tt.err != "" {
 				require.EqualError(t, err, tt.err)
@@ -94,6 +101,7 @@ func TestLookupVariable(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range []struct {
 		name     string
 		expected interface{}
@@ -106,7 +114,7 @@ func TestLookupVariable(t *testing.T) {
 		{"list.-2.float", nil},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, ok := lookupVariable(variables, tt.name)
+			actual, ok := runner.LookupVariable(variables, tt.name)
 			if tt.expected == nil {
 				assert.False(t, ok)
 			} else {
@@ -136,6 +144,7 @@ func TestSetVariable(t *testing.T) {
 		for _, s := range setters {
 			s(ret)
 		}
+
 		return ret
 	}
 	for _, tt := range []struct {
@@ -145,14 +154,30 @@ func TestSetVariable(t *testing.T) {
 	}{
 		{"string", "new string", variables(func(v V) { v["string"] = "new string" })},
 		{"int", "not an int anymore", variables(func(v V) { v["int"] = "not an int anymore" })},
-		{"map.float", 13.0, variables(func(v V) { v["map"].(map[interface{}]interface{})["float"] = 13.0 })},
-		{"list.0.float", 15.0, variables(func(v V) { v["list"].([]interface{})[0].(map[interface{}]interface{})["float"] = 15.0 })},
+		{
+			"map.float",
+			13.0,
+			variables(
+				func(v V) {
+					v["map"].(map[interface{}]interface{})["float"] = 13.0 //nolint:forcetypeassert
+				},
+			),
+		},
+		{
+			"list.0.float",
+			15.0,
+			variables(
+				func(v V) {
+					v["list"].([]interface{})[0].(map[interface{}]interface{})["float"] = 15.0 //nolint:forcetypeassert
+				},
+			),
+		},
 		{"list.2.float", nil, variables()},
 		{"list.-2.float", nil, variables()},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			v := variables()
-			setVariable(v, strings.Split(tt.name, "."), tt.value)
+			runner.SetVariable(v, strings.Split(tt.name, "."), tt.value)
 			assert.Equal(t, tt.expected, v)
 		})
 	}

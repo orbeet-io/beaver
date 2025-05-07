@@ -1,6 +1,7 @@
 package runner_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -21,10 +22,11 @@ func TestRunCMD(t *testing.T) {
 	c := cmd.NewCmd("echo", "p00f")
 	stdout, stderr, err := runner.RunCMD(c)
 	require.NoError(t, err)
+
 	for _, out := range stdout {
 		assert.Equal(t, "p00f", out)
-		fmt.Println(out)
 	}
+
 	for _, errMsg := range stderr {
 		fmt.Println(errMsg)
 	}
@@ -35,18 +37,16 @@ func TestCmdConfig(t *testing.T) {
 	testPath := filepath.Join("environments", "ns1")
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
+
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testPath, false, false, "", "")
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
 
 	t.Run("yttCharts", func(t *testing.T) {
 		odooYttChart, ok := c.Spec.Charts["odoo"]
 		require.True(t, ok, "we should have an odoo ytt chart in our cmdConfig")
-		assert.Equal(t, 2, len(odooYttChart.ValuesFileNames))
+		assert.Len(t, odooYttChart.ValuesFileNames, 2)
 	})
 
 	t.Run("yttPatches", func(t *testing.T) {
@@ -54,14 +54,16 @@ func TestCmdConfig(t *testing.T) {
 		l := tl.Logger()
 		logger := &l
 		logger.Debug().Str("patches", fmt.Sprintf("%+v", yttPatches)).Msg("found patches")
-		require.Equal(t, 4, len(yttPatches))
+		require.Len(t, yttPatches, 4)
 	})
 
 	t.Run("build", func(t *testing.T) {
 		buildDir := filepath.Join(fixtures, "build", "ns1")
+
 		defer func() {
 			require.NoError(t, runner.CleanDir(buildDir))
 		}()
+
 		r := runner.NewRunner(c)
 		require.NoError(t, r.Build(tmpDir))
 
@@ -88,45 +90,56 @@ func TestCmdConfig(t *testing.T) {
 
 func getEnvVars(resource map[string]interface{}) (map[string]string, error) {
 	result := make(map[string]string)
+
 	spec, ok := resource["spec"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("fail to env var: spec")
+		return nil, errors.New("fail to env var: spec")
 	}
+
 	template, ok := spec["template"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("fail to env var: template")
+		return nil, errors.New("fail to env var: template")
 	}
+
 	containersSpec, ok := template["spec"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("fail to env var: containersSpec")
+		return nil, errors.New("fail to env var: containersSpec")
 	}
+
 	containers, ok := containersSpec["containers"].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("fail to env var: containers")
+		return nil, errors.New("fail to env var: containers")
 	}
+
 	container, ok := containers[0].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("fail to env var: container")
+		return nil, errors.New("fail to env var: container")
 	}
+
 	env, ok := container["env"].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("fail to env var: env")
+		return nil, errors.New("fail to env var: env")
 	}
+
 	for _, item := range env {
 		e, ok := item.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("fail to env var: env var: %v", item)
 		}
+
 		name, ok := e["name"].(string)
 		if !ok {
 			return nil, fmt.Errorf("fail to env var: env var name: %v", item)
 		}
+
 		value, ok := e["value"].(string)
 		if !ok {
 			return nil, fmt.Errorf("fail to env var: env var value: %v", item)
 		}
+
 		result[name] = value
 	}
+
 	return result, nil
 }
 
@@ -140,12 +153,12 @@ func TestFindFiles(t *testing.T) {
 		},
 	}
 	layers := []string{
-		fmt.Sprintf("fixtures/f1/environments/%s", namespace),
+		"fixtures/f1/environments/" + namespace,
 		"fixtures/f1/base",
 	}
 
 	newCharts := runner.FindFiles(layers, charts)
-	require.Equal(t, 2, len(newCharts["postgres"].ValuesFileNames))
+	require.Len(t, newCharts["postgres"].ValuesFileNames, 2)
 }
 
 func TestYamlSplit(t *testing.T) {
@@ -154,11 +167,13 @@ func TestYamlSplit(t *testing.T) {
 	buildDir := filepath.Join(fixtures, "build", namespace)
 	compiledFiles, err := runner.YamlSplit(buildDir, filepath.Join(fixtures, compiled))
 	require.NoError(t, err)
-	require.Equal(t, 4, len(compiledFiles))
+
+	require.Len(t, compiledFiles, 4)
+
 	for _, filePath := range compiledFiles {
 		fileName := filepath.Base(filePath)
 		tokens := strings.Split(fileName, ".")
-		require.Equal(t, 4, len(tokens))
+		require.Len(t, tokens, 4)
 
 		// <kind>.<apiVersion>.<name>.yaml
 		content, err := os.ReadFile(filePath)

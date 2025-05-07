@@ -1,9 +1,11 @@
-package runner
+package runner_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"orus.io/orus-io/beaver/runner"
 )
 
 type ToBoolTestCase struct {
@@ -51,7 +53,7 @@ func TestToBool(t *testing.T) {
 		},
 	}
 	for _, tCase := range tCases {
-		res, err := toBool(tCase.Input)
+		res, err := runner.ToBool(tCase.Input)
 		if tCase.ExpectError {
 			require.Error(t, err)
 		} else {

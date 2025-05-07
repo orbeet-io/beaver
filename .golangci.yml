@@ -164,5 +164,6 @@ issues:
         - testifylint
   exclude-dirs:
     - dependencies
+    - lib/logging
   exclude-files:
     - bindata.go

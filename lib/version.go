@@ -18,7 +18,9 @@ func ControlVersions(desired, actual string) error {
 	}
 
 	if !desiredVersion.Equal(actualVersion) {
-		return fmt.Errorf("desired beaver version is not equal to actual beaver version, %s != %s", desiredVersion.String(), actualVersion.String())
+		return fmt.Errorf(
+			"desired beaver version is not equal to actual beaver version, %s != %s",
+			desiredVersion.String(), actualVersion.String())
 	}
 
 	return nil

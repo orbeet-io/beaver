@@ -23,6 +23,7 @@ type BuildCmd struct {
 // NewBuildCmd ...
 func NewBuildCmd() *BuildCmd {
 	cmd := BuildCmd{}
+
 	return &cmd
 }
 
@@ -50,6 +51,7 @@ func (cmd *BuildCmd) Execute([]string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
+
 	if !cmd.Args.Keep {
 		defer func() {
 			if err := os.RemoveAll(tmpDir); err != nil {
@@ -61,12 +63,15 @@ func (cmd *BuildCmd) Execute([]string) error {
 	if err := config.Initialize(tmpDir); err != nil {
 		return fmt.Errorf("failed to prepare config: %w", err)
 	}
+
 	r := runner.NewRunner(config)
+
 	return r.Build(tmpDir)
 }
 
 func init() {
 	buildCmd := NewBuildCmd()
+
 	_, err := parser.AddCommand("build", "Build new environment", "", buildCmd)
 	if err != nil {
 		Logger.Fatal().Msg(err.Error())
@@ -76,5 +81,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
 	g.Namespace = "log"
 }

@@ -15,28 +15,27 @@ import (
 
 const (
 	nestedVars = "fixtures/f5"
+	envNS1     = "environments/ns1"
 )
 
 func TestConfigNestedVar(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
 	absConfigDir, err := filepath.Abs(nestedVars)
 	require.NoError(t, err)
-	testNS := "environments/ns1"
+
+	testNS := envNS1
 
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, false, "", "")
 
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
 
 	v, success := c.Spec.Variables.Get("common.port")
-	require.Equal(t, true, success)
+	require.True(t, success)
 
 	port, ok := v.(int)
-	require.Equal(t, true, ok)
+	require.True(t, ok)
 
 	assert.Equal(t, 443, port)
 
@@ -45,6 +44,7 @@ func TestConfigNestedVar(t *testing.T) {
 
 	buildDir := filepath.Join(nestedVars, "build", "ns1")
 	outPutConfigMapName := filepath.Join(buildDir, "ConfigMap.v1.test-configmap.yaml")
+
 	f, err := os.Open(outPutConfigMapName)
 	require.NoError(t, err)
 

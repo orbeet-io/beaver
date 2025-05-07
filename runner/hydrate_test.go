@@ -1,4 +1,4 @@
-package runner
+package runner_test
 
 import (
 	"bytes"
@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"orus.io/orus-io/beaver/runner"
 )
 
 type hydrateTestCase struct {
@@ -45,10 +47,11 @@ func TestHydrateScalarNode(t *testing.T) {
 	for _, tcase := range testCases {
 		t.Run(tcase.Name, func(t *testing.T) {
 			var node yaml.Node
+
 			require.NoError(t, yaml.Unmarshal([]byte(tcase.InputYaml), &node))
 
 			// hydrate must work
-			require.NoError(t, hydrateScalarNode(node.Content[0], tcase.InputVars))
+			require.NoError(t, runner.HydrateScalarNode(node.Content[0], tcase.InputVars))
 
 			assert.Equal(t, tcase.ExpectedResult, node.Content[0].Value)
 		})
@@ -71,7 +74,7 @@ func TestHydrateString(t *testing.T) {
 			b := []byte{}
 			buf := bytes.NewBuffer(b)
 			// hydrate must work
-			require.NoError(t, hydrateString(tcase.InputYaml, buf, tcase.InputVars))
+			require.NoError(t, runner.HydrateString(tcase.InputYaml, buf, tcase.InputVars))
 
 			assert.Equal(t, tcase.ExpectedResult, buf.String())
 		})

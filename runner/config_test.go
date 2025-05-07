@@ -58,6 +58,7 @@ func TestBuildArgs(t *testing.T) {
 		cmdChart := runner.CmdChartFromChart(chart)
 		result, err := cmdChart.BuildArgs("my-name", "my-namespace")
 		require.NoError(t, err)
+
 		if cmdChart.Namespace != "" {
 			assert.Equal(t, cmdChart.Namespace, result[4])
 		} else {
@@ -90,6 +91,7 @@ voo: 33
 	decoder := yaml.NewDecoder(byteContent)
 
 	require.NoError(t, decoder.Decode(&variables))
+
 	input := `
 #@data/values
 ---
@@ -104,6 +106,7 @@ barwith: <[bar.with.1]>
 
 	buf := bytes.NewBufferString("")
 	require.NoError(t, runner.Hydrate([]byte(input), buf, variables))
+
 	assert.Equal(
 		t,
 		`
@@ -137,9 +140,11 @@ foo: 33
 	variables := make(map[string]interface{})
 
 	byteContent := bytes.NewReader(rawVariables)
+
 	decoder := yaml.NewDecoder(byteContent)
 
 	require.NoError(t, decoder.Decode(&variables))
+
 	input := `
 ---
 foo: <[foo]>
@@ -183,9 +188,10 @@ foo: |
 	variables := make(map[string]interface{})
 
 	byteContent := bytes.NewReader(rawVariables)
-	decoder := yaml.NewDecoder(byteContent)
 
+	decoder := yaml.NewDecoder(byteContent)
 	require.NoError(t, decoder.Decode(&variables))
+
 	input := `
 ---
 foo: |
@@ -206,6 +212,7 @@ foo: |
 	buf := bytes.NewBufferString("")
 	err := runner.Hydrate([]byte(input), buf, variables)
 	require.NoError(t, err)
+
 	assert.Equal(
 		t,
 		expected,
@@ -216,20 +223,20 @@ foo: |
 
 func TestYttBuildArgs(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
-	testNS := "environments/ns1"
+	testNS := envNS1
+
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
+
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, false, "", "")
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
 
 	args := c.BuildYttArgs(c.Spec.Ytt, []string{"/tmp/postgres.1234.yaml", "/tmp/odoo.5678.yaml"})
-	require.NoError(t, err)
-	assert.Equal(
+
+	assert.Len(
 		t,
 		// []string{
 		// 	"-f", "/tmp/postgres.1234.yaml", "--file-mark=postgres.1234.yaml:type=yaml-plain",
@@ -239,49 +246,53 @@ func TestYttBuildArgs(t *testing.T) {
 		// 	"-f", filepath.Join(fixtures, "environments/ns1/ytt"),
 		// 	"-f", filepath.Join(fixtures, "environments/ns1/ytt.yaml"),
 		// },
+		args,
 		14,
-		len(args),
 	)
 }
 
 func TestInheritVariables(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
-	testNS := "environments/ns1"
+	testNS := envNS1
+
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
+
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, false, "", "")
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
+
 	assert.Equal(t, "another value", c.Spec.Variables.GetD("test-nested.nested-value1", nil))
 	assert.Equal(t, "Value2", c.Spec.Variables.GetD("test-nested.nested-value2", nil))
 }
 
 func TestCreateConfig(t *testing.T) {
 	tl := testutils.NewTestLogger(t)
-	testNS := "environments/ns1"
+	testNS := envNS1
+
 	absConfigDir, err := filepath.Abs(fixtures)
 	require.NoError(t, err)
+
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, testNS, false, false, "", "")
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
-	require.Equal(t, 1, len(c.Spec.Creates))
+	require.Len(t, c.Spec.Creates, 1)
 
 	assert.True(t, filepath.IsAbs(c.Spec.Charts["postgres"].Path))
+
 	crKey := runner.CmdCreateKey{
 		Type: "configmap",
 		Name: "xbus-pipelines",
 	}
+
 	cr, ok := c.Spec.Creates[crKey]
 	assert.True(t, ok)
-	require.Equal(t, 1, len(cr.Args))
+
+	require.Len(t, cr.Args, 1)
 
 	for k, create := range c.Spec.Creates {
 		args := k.BuildArgs(c.Namespace, create.Args)
@@ -327,6 +338,7 @@ func TestDisabledAsVariable(t *testing.T) {
 
 func runTestDisabledAsVar(t *testing.T, tCase disabledTCase) {
 	t.Helper()
+
 	buildDir := filepath.Join(disabledAsVar, "build", "example")
 	defer func() {
 		require.NoError(t, runner.CleanDir(buildDir))
@@ -335,13 +347,13 @@ func runTestDisabledAsVar(t *testing.T, tCase disabledTCase) {
 	tl := testutils.NewTestLogger(t)
 	absRootDir, err := filepath.Abs(disabledAsVar)
 	require.NoError(t, err)
+
 	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, false, "", "")
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
+
 	r := runner.NewRunner(c)
 	require.NoError(t, r.Build(tmpDir))
 
@@ -350,7 +362,7 @@ func runTestDisabledAsVar(t *testing.T, tCase disabledTCase) {
 		_, err = os.Stat(outPutConfigMapName)
 		require.Error(t, err)
 		// file should not exist since it is disabled by a variable in the ns2/beaver.yaml
-		require.True(t, errors.Is(err, os.ErrNotExist))
+		require.ErrorIs(t, err, os.ErrNotExist)
 	} else {
 		_, err = os.Stat(outPutConfigMapName)
 		// file should exist
@@ -389,21 +401,23 @@ func TestNamaspaceAsVariable(t *testing.T) {
 
 func runTestBeaverNamespaceAsVariable(t *testing.T, tCase namespaceTCase) {
 	t.Helper()
+
 	defer func() {
 		require.NoError(t, runner.CleanDir(tCase.ExpectedBuildDir))
 		require.NoError(t, os.RemoveAll(tCase.ExpectedBuildDir))
 	}()
 
 	tl := testutils.NewTestLogger(t)
+
 	absRootDir, err := filepath.Abs(namespaceAsVar)
 	require.NoError(t, err)
+
 	c := runner.NewCmdConfig(tl.Logger(), absRootDir, tCase.TestPath, false, false, "", "")
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
+
 	r := runner.NewRunner(c)
 	require.NoError(t, r.Build(tmpDir))
 
@@ -413,7 +427,7 @@ func runTestBeaverNamespaceAsVariable(t *testing.T, tCase namespaceTCase) {
 		_, err = os.Stat(outPutConfigMapName)
 		require.Error(t, err)
 		// file should not exist since it is disabled by a variable in the ns2/beaver.yaml
-		require.True(t, errors.Is(err, os.ErrNotExist))
+		require.ErrorIs(t, err, os.ErrNotExist)
 	} else {
 		_, err = os.Stat(outPutConfigMapName)
 		// file should exist
@@ -423,34 +437,39 @@ func runTestBeaverNamespaceAsVariable(t *testing.T, tCase namespaceTCase) {
 
 func TestSha(t *testing.T) {
 	shaValue := "2145bea9e32804c65d960e6d4af1c87f95ccc39fad7df5eec2f3925a193112ab"
+
 	buildDir := filepath.Join(shaFixtures, "build", "example")
 	defer func() {
 		require.NoError(t, runner.CleanDir(buildDir))
 	}()
 
 	tl := testutils.NewTestLogger(t)
+
 	absConfigDir, err := filepath.Abs(shaFixtures)
 	require.NoError(t, err)
+
 	c := runner.NewCmdConfig(tl.Logger(), absConfigDir, "base", false, false, "", "")
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "beaver-")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(tmpDir))
-	}()
+
+	tmpDir := t.TempDir()
+
 	require.NoError(t, c.Initialize(tmpDir))
+
 	r := runner.NewRunner(c)
 	require.NoError(t, r.Build(tmpDir))
 
 	configMap := filepath.Join(buildDir, "ConfigMap.v1.demo.yaml")
 	cm, err := parseFile(configMap)
 	require.NoError(t, err)
+
 	sha, err := getLabel(cm, "mysha")
 	require.NoError(t, err)
 	require.Equal(t, shaValue, sha)
 
 	deployment := filepath.Join(buildDir, "Deployment.apps_v1.nginx.yaml")
+
 	deploy, err := parseFile(deployment)
 	require.NoError(t, err)
+
 	sha, err = getLabel(deploy, "config.sha")
 	require.NoError(t, err)
 	require.Equal(t, shaValue, sha)
@@ -461,14 +480,17 @@ func getLabel(resource map[string]interface{}, label string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("fail to get label: metadata on %+v", resource["metadata"])
 	}
+
 	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
 		return "", fmt.Errorf("fail to get label: labels on %+v", metadata["labels"])
 	}
+
 	result, ok := labels[label].(string)
 	if !ok {
-		return "", fmt.Errorf("fail to get label: result")
+		return "", errors.New("fail to get label: result")
 	}
+
 	return result, nil
 }
 
