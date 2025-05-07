@@ -2,6 +2,14 @@
 HISTORY
 *******
 
+3.2.10 (2025-05-07)
+===================
+
+- Rebuild with golang 1.24.2
+- Add new golangcilint
+- Fix all new linters complaints
+- "Failed to run command" error should contains better info
+
 3.2.9 (2025-05-05)
 ==================
 
