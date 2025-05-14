@@ -1,5 +1,4 @@
-syntax: glob
-
+.envrc
 build
 tools/bin
 .cover.cov
@@ -7,6 +6,5 @@ coverage.html
 
 .idea
 *.swp
-.git*
 *.tgz
 *.lock
